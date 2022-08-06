@@ -17,7 +17,7 @@
         <maven.build.timestamp.format>yyyyMMddHHmmssSSS</maven.build.timestamp.format>
         <functionNameRandom>${maven.build.timestamp} </functionNameRandom>
         <functionAppName>weather-observations-az-func-${functionNameRandom}</functionAppName>
-        <functionGroup>weather-observations</functionGroup>
+        <functionGroup>weather-observations-mvn</functionGroup>
         <appPlan>weather-observations-app-plan</appPlan>
     </properties>
 
