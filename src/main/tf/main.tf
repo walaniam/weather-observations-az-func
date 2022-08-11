@@ -71,12 +71,17 @@ resource "azurerm_service_plan" "this" {
   sku_name            = "Y1"
 }
 
-#resource "azurerm_linux_function_app" "this" {
-#  location            = azurerm_service_plan.this.location
-#  name                = "${local.project_name}-func-app-${random_integer.this.result}"
-#  resource_group_name = azurerm_service_plan.this.resource_group_name
-#  service_plan_id     = azurerm_service_plan.this.id
-#  site_config {
-#    app_scale_limit = 5
-#  }
-#}
+resource "azurerm_linux_function_app" "this" {
+  location                   = azurerm_service_plan.this.location
+  name                       = "${local.project_name}-func-app"
+  resource_group_name        = azurerm_service_plan.this.resource_group_name
+  service_plan_id            = azurerm_service_plan.this.id
+  storage_account_name       = azurerm_storage_account.function_app_storage.name
+  storage_account_access_key = azurerm_storage_account.function_app_storage.primary_access_key
+  site_config {
+    app_scale_limit = 5
+    application_stack {
+      java_version = "11"
+    }
+  }
+}
