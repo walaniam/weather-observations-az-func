@@ -71,6 +71,13 @@ resource "azurerm_service_plan" "this" {
   sku_name            = "Y1"
 }
 
+resource "azurerm_application_insights" "this" {
+  application_type    = "java"
+  location            = azurerm_resource_group.this.location
+  name                = "${local.project_name}-app-insights"
+  resource_group_name = azurerm_resource_group.this.name
+}
+
 resource "azurerm_linux_function_app" "this" {
   location                   = azurerm_service_plan.this.location
   name                       = "${local.project_name}-func-app"
@@ -83,5 +90,8 @@ resource "azurerm_linux_function_app" "this" {
     application_stack {
       java_version = "11"
     }
+  }
+  app_settings = {
+    "APPINSIGHTS_INSTRUMENTATIONKEY" = "${azurerm_application_insights.this.instrumentation_key}"
   }
 }
