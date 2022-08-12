@@ -14,11 +14,6 @@
         <java.version>11</java.version>
         <azure.functions.maven.plugin.version>1.19.0</azure.functions.maven.plugin.version>
         <azure.functions.java.library.version>2.0.1</azure.functions.java.library.version>
-        <maven.build.timestamp.format>yyyyMMddHHmmssSSS</maven.build.timestamp.format>
-        <functionNameRandom>${maven.build.timestamp} </functionNameRandom>
-        <functionAppName>weather-observations-az-func-${functionNameRandom}</functionAppName>
-        <functionGroup>weather-observations</functionGroup>
-        <appPlan>weather-observations-app-plan</appPlan>
     </properties>
 
     <dependencies>
@@ -61,9 +56,10 @@
                 <artifactId>azure-functions-maven-plugin</artifactId>
                 <version>${azure.functions.maven.plugin.version}</version>
                 <configuration>
-                    <appName>${functionAppName}</appName>
-                    <resourceGroup>${functionGroup}</resourceGroup>
-                    <appServicePlanName>${appPlan}</appServicePlanName>
+                    <appName>weather-observations-func-app</appName>
+                    <resourceGroup>weather-observations</resourceGroup>
+                    <appServicePlanName>weather-observations-service-plan</appServicePlanName>
+                    <appServicePlanResourceGroup>weather-observations</appServicePlanResourceGroup>
                     <!-- refers https://github.com/microsoft/azure-maven-plugins/wiki/Azure-Functions:-Configuration-Details#supported-regions for all valid values -->
                     <region>westeurope</region>
                     <!-- function pricingTier, default to be consumption if not specified -->
@@ -75,7 +71,7 @@
                     <runtime>
                         <!-- runtime os, could be windows, linux or docker-->
                         <os>linux</os>
-                        <javaVersion>11</javaVersion>
+                        <javaVersion>${java.version}</javaVersion>
                     </runtime>
                     <appSettings>
                         <property>
