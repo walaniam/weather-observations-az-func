@@ -1,4 +1,4 @@
-package walaniam;
+package walaniam.weather;
 
 import com.microsoft.azure.functions.*;
 

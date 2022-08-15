@@ -86,12 +86,15 @@ resource "azurerm_linux_function_app" "this" {
   storage_account_name       = azurerm_storage_account.function_app_storage.name
   storage_account_access_key = azurerm_storage_account.function_app_storage.primary_access_key
   site_config {
-    app_scale_limit = 5
+    app_scale_limit          = 5
+    application_insights_key = azurerm_application_insights.this.instrumentation_key
     application_stack {
       java_version = "11"
     }
   }
-  app_settings = {
-    "APPINSIGHTS_INSTRUMENTATIONKEY" = "${azurerm_application_insights.this.instrumentation_key}"
+  lifecycle {
+    ignore_changes = [
+      tags
+    ]
   }
 }
