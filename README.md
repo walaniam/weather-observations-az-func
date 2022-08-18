@@ -32,9 +32,9 @@ az functionapp function keys list -g weather-observations -n weather-observation
 func azure functionapp logstream weather-observations-az-func
 ```
 
-### Cleanup
+### Show function
 ```bash
-az group delete --name weather-observations
+az functionapp function show -g weather-observations -n weather-observations-func-app --function-name observations-v1
 ```
 
 ## Properties
