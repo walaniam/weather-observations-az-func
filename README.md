@@ -19,17 +19,17 @@ mvn azure-functions:deploy
 
 ### Find keys (host, master and system key)
 ```bash
-az functionapp keys list -g weather-observations -n weather-observations-az-func
+az functionapp keys list -g weather-observations -n weather-observations-func-app
 ```
 
 ### Find function keys
 ```bash
-az functionapp function keys list -g weather-observations -n weather-observations-az-func --function-name HttpExample
+az functionapp function keys list -g weather-observations -n weather-observations-func-app --function-name observations-v1
 ```
 
 ### Check logs
 ```bash
-func azure functionapp logstream weather-observations-az-func
+func azure functionapp logstream weather-observations-func-app
 ```
 
 ### Show function

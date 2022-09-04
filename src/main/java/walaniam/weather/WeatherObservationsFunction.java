@@ -23,15 +23,20 @@ public class WeatherObservationsFunction {
             OutputBinding<WeatherData> document,
             ExecutionContext context) {
 
+        final var log = context.getLogger();
+
         var body = request.getBody();
 
-        context.getLogger().info("Observation body data: " + body);
+        log.info("Observation body data: " + body);
 
         if (isBlank(body)) {
             return request
                     .createResponseBuilder(HttpStatus.BAD_REQUEST)
                     .build();
         } else {
+            var data = WeatherData.of(body);
+            log.info("Saving data: " + data);
+            document.setValue(data);
             return request
                     .createResponseBuilder(HttpStatus.OK)
                     .build();

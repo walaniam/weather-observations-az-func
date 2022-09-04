@@ -19,12 +19,12 @@ public class WeatherObservationsFunctionTest {
      * Unit test for HttpTriggerJava method.
      */
     @Test
-    public void testHttpTriggerJava() throws Exception {
+    public void testHttpTriggerJava() {
         // Setup
         @SuppressWarnings("unchecked")
         HttpRequestMessage<String> req = mock(HttpRequestMessage.class);
 
-        doReturn("acb").when(req).getBody();
+        doReturn("20220904 122300,16.5,20.5,998").when(req).getBody();
 
         doAnswer((Answer<HttpResponseMessage.Builder>) invocation -> {
             HttpStatus status = (HttpStatus) invocation.getArguments()[0];
