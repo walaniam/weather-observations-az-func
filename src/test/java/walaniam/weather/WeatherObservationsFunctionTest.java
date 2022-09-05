@@ -1,9 +1,13 @@
 package walaniam.weather;
 
-import com.microsoft.azure.functions.*;
+import com.microsoft.azure.functions.ExecutionContext;
+import com.microsoft.azure.functions.HttpRequestMessage;
+import com.microsoft.azure.functions.HttpResponseMessage;
+import com.microsoft.azure.functions.HttpStatus;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,13 +35,14 @@ public class WeatherObservationsFunctionTest {
             return new HttpResponseMessageMock.HttpResponseMessageBuilderMock().status(status);
         }).when(req).createResponseBuilder(any(HttpStatus.class));
 
-        OutputBinding<WeatherData> document = mock(OutputBinding.class);
-
         ExecutionContext context = mock(ExecutionContext.class);
         doReturn(Logger.getGlobal()).when(context).getLogger();
+        WeatherDataRepository dataRepository = mock(WeatherDataRepository.class);
+        Function<ExecutionContext, WeatherDataRepository> repositoryProvider = ctx -> dataRepository;
 
         // Invoke
-        HttpResponseMessage response = new WeatherObservationsFunction().run(req, document, context);
+        WeatherObservationsFunction underTest = new WeatherObservationsFunction(repositoryProvider);
+        HttpResponseMessage response = underTest.run(req, context);
 
         // Verify
         assertEquals(response.getStatus(), HttpStatus.OK);
