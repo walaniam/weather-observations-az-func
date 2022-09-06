@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 
 import static walaniam.weather.common.time.DateTimeUtils.fromUtcString;
@@ -16,7 +16,7 @@ import static walaniam.weather.common.time.DateTimeUtils.fromUtcString;
 @Builder
 public class WeatherData {
 
-    private ZonedDateTime dateTime;
+    private LocalDateTime dateTime;
     private String outsideTemperature;
     private String insideTemperature;
     private String pressureHpa;
