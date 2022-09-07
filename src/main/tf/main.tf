@@ -21,7 +21,7 @@ resource "azurerm_cosmosdb_account" "mongo" {
   mongo_server_version = "4.2"
 
   enable_automatic_failover     = true
-  public_network_access_enabled = false
+  public_network_access_enabled = true
 
   backup {
     type                = "Periodic"
@@ -80,7 +80,7 @@ resource "azurerm_application_insights" "this" {
 
 resource "azurerm_windows_function_app" "this" {
   location                   = azurerm_service_plan.this.location
-  name                       = "${local.project_name}-func-app"
+  name                       = "${local.project_name}-${random_integer.this.result}-func-app"
   resource_group_name        = azurerm_service_plan.this.resource_group_name
   service_plan_id            = azurerm_service_plan.this.id
   storage_account_name       = azurerm_storage_account.function_app_storage.name
@@ -102,27 +102,3 @@ resource "azurerm_windows_function_app" "this" {
     ]
   }
 }
-
-#resource "azurerm_linux_function_app" "this" {
-#  location                   = azurerm_service_plan.this.location
-#  name                       = "${local.project_name}-func-app"
-#  resource_group_name        = azurerm_service_plan.this.resource_group_name
-#  service_plan_id            = azurerm_service_plan.this.id
-#  storage_account_name       = azurerm_storage_account.function_app_storage.name
-#  storage_account_access_key = azurerm_storage_account.function_app_storage.primary_access_key
-#  site_config {
-#    app_scale_limit          = 5
-#    application_insights_key = azurerm_application_insights.this.instrumentation_key
-#    application_stack {
-#      java_version = "11"
-#    }
-#  }
-#  app_settings = {
-#    "CosmosDBConnectionString" = azurerm_cosmosdb_account.mongo.connection_strings[0]
-#  }
-#  lifecycle {
-#    ignore_changes = [
-#      tags
-#    ]
-#  }
-#}
