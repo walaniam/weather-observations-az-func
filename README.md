@@ -4,17 +4,37 @@
 mvn archetype:generate -DarchetypeGroupId=com.microsoft.azure -DarchetypeArtifactId=azure-functions-archetype -DjavaVersion=11
 ```
 
-## Build and run locally
+## Provision Azure environment
+### Init
 ```bash
-mvn clean package
-mvn azure-functions:run
+cd src/main/tf
+terraform init
+```
+
+### Create environment
+```bash
+cd src/main/tf
+terraform plan
+terraform apply
+```
+
+## Build and run locally
+For further commands export random int variable from terraform state
+```bash
+export TF_RANDOM_INT=$(cd src/main/tf/ && terraform state show random_integer.this |grep result | cut -d "
+=" -f2 |xargs)
+```
+
+```bash
+mvn clean package -Dtf.random.int=$TF_RANDOM_INT
+mvn azure-functions:run -Dtf.random.int=$TF_RANDOM_INT
 ```
 
 ## Azure
 ### Deployment
 ```bash
 az login
-mvn azure-functions:deploy
+mvn azure-functions:deploy -Dtf.random.int=$TF_RANDOM_INT
 ```
 
 ### Find keys (host, master and system key)
