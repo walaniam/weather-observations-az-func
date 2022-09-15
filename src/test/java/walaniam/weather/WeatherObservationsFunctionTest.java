@@ -4,10 +4,14 @@ import com.microsoft.azure.functions.ExecutionContext;
 import com.microsoft.azure.functions.HttpRequestMessage;
 import com.microsoft.azure.functions.HttpResponseMessage;
 import com.microsoft.azure.functions.HttpStatus;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
-import java.util.function.Function;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -15,13 +19,23 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 
-/**
- * Unit test for Function class.
- */
+@Testcontainers
 public class WeatherObservationsFunctionTest {
-    /**
-     * Unit test for HttpTriggerJava method.
-     */
+
+    @Container
+    private static final MongoDBContainer MONGO_DB_CONTAINER = new MongoDBContainer(
+            DockerImageName.parse("mongo").withTag("4.2.22")
+    );
+
+    private final ExecutionContext executionContext = mock(ExecutionContext.class);
+    private WeatherObservationsFunction underTest;
+
+    @BeforeEach
+    public void beforeEach() {
+        doReturn(Logger.getGlobal()).when(executionContext).getLogger();
+        underTest = new WeatherObservationsFunction(MONGO_DB_CONTAINER.getConnectionString());
+    }
+
     @Test
     public void testHttpTriggerJava() {
         // Setup
@@ -35,14 +49,8 @@ public class WeatherObservationsFunctionTest {
             return new HttpResponseMessageMock.HttpResponseMessageBuilderMock().status(status);
         }).when(req).createResponseBuilder(any(HttpStatus.class));
 
-        ExecutionContext context = mock(ExecutionContext.class);
-        doReturn(Logger.getGlobal()).when(context).getLogger();
-        WeatherDataRepository dataRepository = mock(WeatherDataRepository.class);
-        Function<ExecutionContext, WeatherDataRepository> repositoryProvider = ctx -> dataRepository;
-
         // Invoke
-        WeatherObservationsFunction underTest = new WeatherObservationsFunction(repositoryProvider);
-        HttpResponseMessage response = underTest.run(req, context);
+        HttpResponseMessage response = underTest.run(req, executionContext);
 
         // Verify
         assertEquals(response.getStatus(), HttpStatus.OK);
