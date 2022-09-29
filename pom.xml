@@ -14,6 +14,7 @@
         <java.version>11</java.version>
         <azure.functions.maven.plugin.version>1.19.0</azure.functions.maven.plugin.version>
         <azure.functions.java.library.version>2.0.1</azure.functions.java.library.version>
+        <tf.random.int>0</tf.random.int> <!-- placeholder -->
     </properties>
 
     <dependencies>
