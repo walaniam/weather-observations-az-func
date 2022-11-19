@@ -18,11 +18,9 @@ public class WeatherObservationsFunction {
 
     private final Function<ExecutionContext, WeatherDataRepository> repositoryProvider;
 
+    @SuppressWarnings("unused")
     public WeatherObservationsFunction() {
-        this(context -> new WeatherDataMongoRepository(
-                context,
-                System.getenv("CosmosDBConnectionString")
-        ));
+        this(context -> new WeatherDataMongoRepository(context, System.getenv("CosmosDBConnectionString")));
     }
 
     @FunctionName("observations-v1")
@@ -31,14 +29,14 @@ public class WeatherObservationsFunction {
             HttpRequestMessage<String> request,
             ExecutionContext context) {
 
-        var body = request.getBody();
+        String body = request.getBody();
 
         info(context, "Observation body data: [%s]", body);
 
         if (isBlank(body)) {
             return responseOf(request, HttpStatus.BAD_REQUEST, Optional.of("Missing body"));
         } else {
-            var repository = repositoryProvider.apply(context);
+            WeatherDataRepository repository = repositoryProvider.apply(context);
             var data = WeatherData.of(body);
             try {
                 repository.save(data);
@@ -52,7 +50,7 @@ public class WeatherObservationsFunction {
     private static HttpResponseMessage responseOf(HttpRequestMessage<String> request,
                                                   HttpStatus status,
                                                   Optional<String> message) {
-        var builder = request.createResponseBuilder(status);
+        HttpResponseMessage.Builder builder = request.createResponseBuilder(status);
         message.ifPresent(builder::body);
         return builder.build();
     }

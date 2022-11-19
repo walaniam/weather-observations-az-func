@@ -23,7 +23,7 @@ public class WeatherData {
 
     public static WeatherData of(String csv) {
 
-        var data =  Pattern.compile(",").splitAsStream(csv)
+        String[] data =  Pattern.compile(",").splitAsStream(csv)
                 .map(String::trim)
                 .toArray(size -> new String[size]);
 

@@ -5,7 +5,11 @@ import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.result.InsertOneResult;
 import lombok.RequiredArgsConstructor;
+import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
 
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
@@ -24,26 +28,25 @@ public class WeatherDataMongoRepository implements WeatherDataRepository {
     public void save(WeatherData data) {
         info(context, "Saving data: %s", data);
         try (MongoClient client = newMongoClient()) {
-            var db = client.getDatabase(DB_NAME);
-            var collection = db.getCollection(COLLECTION_NAME, WeatherData.class);
-            var insertResult = collection.insertOne(data);
+            MongoDatabase db = client.getDatabase(DB_NAME);
+            MongoCollection<WeatherData> collection = db.getCollection(COLLECTION_NAME, WeatherData.class);
+            InsertOneResult insertResult = collection.insertOne(data);
             info(context, "Inserted: %s", insertResult);
         }
     }
 
     private MongoClient newMongoClient() {
 
-        var codecRegistry = fromRegistries(
+        CodecRegistry codecRegistry = fromRegistries(
                 MongoClientSettings.getDefaultCodecRegistry(),
                 fromProviders(PojoCodecProvider.builder().automatic(true).build())
         );
 
-        var settings = MongoClientSettings.builder()
+        MongoClientSettings settings = MongoClientSettings.builder()
                 .applyConnectionString(new ConnectionString(connectionString))
                 .codecRegistry(codecRegistry)
                 .build();
 
         return MongoClients.create(settings);
     }
-
 }
