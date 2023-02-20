@@ -21,9 +21,12 @@ public class WeatherObservationsFunction {
 
     private final Function<ExecutionContext, WeatherDataRepository> repositoryProvider;
 
-    @SuppressWarnings("unused")
     public WeatherObservationsFunction() {
-        this(context -> new WeatherDataMongoRepository(context, System.getenv("CosmosDBConnectionString")));
+        this(System.getenv("CosmosDBConnectionString"));
+    }
+
+    public WeatherObservationsFunction(String connectionString) {
+        this(context -> new WeatherDataMongoRepository(context, connectionString));
     }
 
     @FunctionName("post-observations-v1")
