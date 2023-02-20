@@ -7,7 +7,6 @@ import com.microsoft.azure.functions.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
-import walaniam.weather.mongo.WeatherDataRepository;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -29,16 +28,16 @@ public class WeatherObservationsFunctionTest {
     );
 
     private final ExecutionContext executionContext = mock(ExecutionContext.class);
-    private WeatherObservationsFunction underTest;
+    private WeatherObservationsFunctionsHandler underTest;
 
     @BeforeEach
     public void beforeEach() {
         doReturn(Logger.getGlobal()).when(executionContext).getLogger();
-        underTest = new WeatherObservationsFunction(MONGO_DB_CONTAINER.getConnectionString());
+        underTest = new WeatherObservationsFunctionsHandler(MONGO_DB_CONTAINER.getConnectionString());
     }
 
     @Test
-    public void testHttpTriggerJava() {
+    public void shouldPostObservation() {
         // Setup
         @SuppressWarnings("unchecked")
         HttpRequestMessage<String> req = mock(HttpRequestMessage.class);
@@ -51,7 +50,27 @@ public class WeatherObservationsFunctionTest {
         }).when(req).createResponseBuilder(any(HttpStatus.class));
 
         // Invoke
-        HttpResponseMessage response = underTest.run(req, executionContext);
+        HttpResponseMessage response = underTest.postObservation(req, executionContext);
+
+        // Verify
+        assertEquals(response.getStatus(), HttpStatus.OK);
+    }
+
+    @Test
+    public void shouldPostAndReadObservations() { // TODO
+        // Setup
+        @SuppressWarnings("unchecked")
+        HttpRequestMessage<String> req = mock(HttpRequestMessage.class);
+
+        doReturn("20220904 122300,16.5,20.5,998").when(req).getBody();
+
+        doAnswer((Answer<HttpResponseMessage.Builder>) invocation -> {
+            HttpStatus status = (HttpStatus) invocation.getArguments()[0];
+            return new HttpResponseMessageMock.HttpResponseMessageBuilderMock().status(status);
+        }).when(req).createResponseBuilder(any(HttpStatus.class));
+
+        // Invoke
+        HttpResponseMessage response = underTest.postObservation(req, executionContext);
 
         // Verify
         assertEquals(response.getStatus(), HttpStatus.OK);

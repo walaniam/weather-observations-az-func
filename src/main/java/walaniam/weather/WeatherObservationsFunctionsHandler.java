@@ -10,6 +10,7 @@ import walaniam.weather.mongo.WeatherData;
 import walaniam.weather.mongo.WeatherDataMongoRepository;
 import walaniam.weather.mongo.WeatherDataRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -17,20 +18,21 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static walaniam.weather.common.logging.LoggingUtils.info;
 
 @RequiredArgsConstructor
-public class WeatherObservationsFunction {
+public class WeatherObservationsFunctionsHandler {
 
     private final Function<ExecutionContext, WeatherDataRepository> repositoryProvider;
 
-    public WeatherObservationsFunction() {
+    @SuppressWarnings("unused")
+    public WeatherObservationsFunctionsHandler() {
         this(System.getenv("CosmosDBConnectionString"));
     }
 
-    public WeatherObservationsFunction(String connectionString) {
+    public WeatherObservationsFunctionsHandler(String connectionString) {
         this(context -> new WeatherDataMongoRepository(context, connectionString));
     }
 
     @FunctionName("post-observations-v1")
-    public HttpResponseMessage run(
+    public HttpResponseMessage postObservation(
             @HttpTrigger(name = "req", methods = HttpMethod.POST, authLevel = AuthorizationLevel.FUNCTION)
             HttpRequestMessage<String> request,
             ExecutionContext context) {
@@ -53,9 +55,26 @@ public class WeatherObservationsFunction {
         }
     }
 
-    private static HttpResponseMessage responseOf(HttpRequestMessage<String> request,
-                                                  HttpStatus status,
-                                                  Optional<String> message) {
+    @FunctionName("get-latest-observations-v1")
+    public HttpResponseMessage getLatest(
+            @HttpTrigger(name = "req", methods = HttpMethod.GET, authLevel = AuthorizationLevel.ANONYMOUS)
+            HttpRequestMessage<String> request,
+            ExecutionContext context) {
+
+        info(context, "Getting latest observations");
+
+        WeatherDataRepository repository = repositoryProvider.apply(context);
+        try {
+            List<WeatherData> latest = repository.getLatest();
+            return responseOf(request, HttpStatus.OK, Optional.of(latest));
+        } catch (MongoException e) {
+            return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
+        }
+    }
+
+    private static <T> HttpResponseMessage responseOf(HttpRequestMessage<String> request,
+                                                      HttpStatus status,
+                                                      Optional<T> message) {
         HttpResponseMessage.Builder builder = request.createResponseBuilder(status);
         message.ifPresent(builder::body);
         return builder.build();
