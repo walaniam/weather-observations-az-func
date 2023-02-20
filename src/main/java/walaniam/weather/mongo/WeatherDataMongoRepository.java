@@ -1,4 +1,4 @@
-package walaniam.weather;
+package walaniam.weather.mongo;
 
 import com.microsoft.azure.functions.ExecutionContext;
 import com.mongodb.ConnectionString;

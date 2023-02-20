@@ -6,6 +6,7 @@ import com.microsoft.azure.functions.HttpResponseMessage;
 import com.microsoft.azure.functions.HttpStatus;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
+import walaniam.weather.mongo.WeatherDataRepository;
 
 import java.util.function.Function;
 import java.util.logging.Logger;

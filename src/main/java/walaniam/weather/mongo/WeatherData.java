@@ -1,4 +1,4 @@
-package walaniam.weather;
+package walaniam.weather.mongo;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

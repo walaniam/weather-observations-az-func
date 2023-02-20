@@ -6,6 +6,9 @@ import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.HttpTrigger;
 import com.mongodb.MongoException;
 import lombok.RequiredArgsConstructor;
+import walaniam.weather.mongo.WeatherData;
+import walaniam.weather.mongo.WeatherDataMongoRepository;
+import walaniam.weather.mongo.WeatherDataRepository;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -23,7 +26,7 @@ public class WeatherObservationsFunction {
         this(context -> new WeatherDataMongoRepository(context, System.getenv("CosmosDBConnectionString")));
     }
 
-    @FunctionName("observations-v1")
+    @FunctionName("post-observations-v1")
     public HttpResponseMessage run(
             @HttpTrigger(name = "req", methods = HttpMethod.POST, authLevel = AuthorizationLevel.FUNCTION)
             HttpRequestMessage<String> request,
