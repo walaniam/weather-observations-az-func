@@ -15,7 +15,8 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
-import static walaniam.weather.common.logging.LoggingUtils.info;
+import static walaniam.weather.common.logging.LoggingUtils.logInfo;
+import static walaniam.weather.common.logging.LoggingUtils.logWarn;
 
 @RequiredArgsConstructor
 public class WeatherObservationsFunctionsHandler {
@@ -39,7 +40,7 @@ public class WeatherObservationsFunctionsHandler {
 
         String body = request.getBody();
 
-        info(context, "Observation body data: [%s]", body);
+        logInfo(context, "Observation body data: [%s]", body);
 
         if (isBlank(body)) {
             return responseOf(request, HttpStatus.BAD_REQUEST, Optional.of("Missing body"));
@@ -50,6 +51,7 @@ public class WeatherObservationsFunctionsHandler {
                 repository.save(data);
                 return responseOf(request, HttpStatus.OK, Optional.empty());
             } catch (MongoException e) {
+                logWarn(context, "Save failed", e);
                 return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
             }
         }
@@ -61,13 +63,14 @@ public class WeatherObservationsFunctionsHandler {
             HttpRequestMessage<String> request,
             ExecutionContext context) {
 
-        info(context, "Getting latest observations");
+        logInfo(context, "Getting latest observations");
 
         WeatherDataRepository repository = repositoryProvider.apply(context);
         try {
             List<WeatherData> latest = repository.getLatest();
             return responseOf(request, HttpStatus.OK, Optional.of(latest));
         } catch (MongoException e) {
+            logWarn(context, "read failed", e);
             return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
         }
     }

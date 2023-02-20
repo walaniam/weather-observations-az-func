@@ -18,7 +18,7 @@ import java.util.List;
 
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
-import static walaniam.weather.common.logging.LoggingUtils.info;
+import static walaniam.weather.common.logging.LoggingUtils.logInfo;
 
 @RequiredArgsConstructor
 public class WeatherDataMongoRepository implements WeatherDataRepository {
@@ -31,23 +31,27 @@ public class WeatherDataMongoRepository implements WeatherDataRepository {
 
     @Override
     public void save(WeatherData data) {
-        info(context, "Saving data: %s", data);
+        logInfo(context, "Saving data: %s", data);
         try (MongoClient client = newMongoClient()) {
             MongoDatabase db = client.getDatabase(DB_NAME);
             MongoCollection<WeatherData> collection = db.getCollection(COLLECTION_NAME, WeatherData.class);
             InsertOneResult insertResult = collection.insertOne(data);
-            info(context, "Inserted: %s", insertResult);
+            logInfo(context, "Inserted: %s", insertResult);
         }
     }
 
     @Override
-    public List<WeatherData> getLatest() {
-        info(context, "Getting latest");
+    public List<WeatherData> getLatest(int limit) {
+        logInfo(context, "Getting {} latest observations", limit);
+        if (limit < 0 || limit > 1000) {
+            throw new IllegalArgumentException("Limit must be in <0, 1000>");
+        }
         try (MongoClient client = newMongoClient()) {
             MongoDatabase db = client.getDatabase(DB_NAME);
             MongoCollection<WeatherData> collection = db.getCollection(COLLECTION_NAME, WeatherData.class);
             return collection
-                    .find(Sorts.descending("dateTime"), WeatherData.class)
+                    .find(WeatherData.class)
+                    .sort(Sorts.descending("dateTime"))
                     .limit(10)
                     .into(new ArrayList<>());
         }
