@@ -25,7 +25,7 @@ public class WeatherData {
 
         String[] data =  Pattern.compile(",").splitAsStream(csv)
                 .map(String::trim)
-                .toArray(size -> new String[size]);
+                .toArray(String[]::new);
 
         if (data.length != 4) {
             throw new IllegalArgumentException("Incorrect csv: " + csv);
