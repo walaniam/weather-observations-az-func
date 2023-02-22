@@ -23,6 +23,7 @@ public class LoggingUtils {
     public static void logWarn(ExecutionContext context, String message, Throwable t) {
         var log = context.getLogger();
         message = String.format("[%s] %s", context.getFunctionName(), message);
-        log.log(Level.WARNING, message, t);
+        log.log(Level.WARNING, message);
+        t.printStackTrace();
     }
 }

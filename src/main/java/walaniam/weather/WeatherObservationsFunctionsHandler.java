@@ -68,18 +68,26 @@ public class WeatherObservationsFunctionsHandler {
         WeatherDataRepository repository = repositoryProvider.apply(context);
         try {
             List<WeatherData> latest = repository.getLatest();
-            return responseOf(request, HttpStatus.OK, Optional.of(latest));
+            HttpResponseMessage.Builder responseBuilder = responseBuilderOf(request, HttpStatus.OK, Optional.of(latest));
+            responseBuilder.header("Content-Type", "application/json");
+            return responseBuilder.build();
         } catch (MongoException e) {
             logWarn(context, "read failed", e);
             return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
         }
     }
 
-    private static <T> HttpResponseMessage responseOf(HttpRequestMessage<String> request,
+    private static <T> HttpResponseMessage.Builder responseBuilderOf(HttpRequestMessage<String> request,
                                                       HttpStatus status,
                                                       Optional<T> message) {
         HttpResponseMessage.Builder builder = request.createResponseBuilder(status);
         message.ifPresent(builder::body);
-        return builder.build();
+        return builder;
+    }
+
+    private static <T> HttpResponseMessage responseOf(HttpRequestMessage<String> request,
+                                                      HttpStatus status,
+                                                      Optional<T> message) {
+        return responseBuilderOf(request, status, message).build();
     }
 }
