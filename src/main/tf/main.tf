@@ -102,3 +102,24 @@ resource "azurerm_windows_function_app" "this" {
     ]
   }
 }
+
+# Cost alerts
+resource "azurerm_consumption_budget_resource_group" "rg_budget" {
+  name              = "${local.project_name}-budget"
+  resource_group_id = azurerm_resource_group.this.id
+  amount            = 20
+  time_grain        = "Monthly"
+  time_period {
+    start_date = formatdate("YYYY-MM-01'T'hh:mm:ssZ", timestamp())
+  }
+  notification {
+    threshold      = 80
+    operator       = "GreaterThanOrEqualTo"
+    contact_emails = [var.notification_alert_email]
+  }
+  lifecycle {
+    ignore_changes = [
+      time_period
+    ]
+  }
+}
