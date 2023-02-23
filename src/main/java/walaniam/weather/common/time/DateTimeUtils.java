@@ -14,4 +14,8 @@ public class DateTimeUtils {
     public static LocalDateTime fromUtcString(String dateTime) {
         return LocalDateTime.parse(dateTime, DT_FORMATTER);
     }
+
+    public static String toUtcString(LocalDateTime time) {
+        return time.format(DT_FORMATTER);
+    }
 }

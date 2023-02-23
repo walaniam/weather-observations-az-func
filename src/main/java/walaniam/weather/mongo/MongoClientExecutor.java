@@ -1,37 +1,42 @@
-package walaniam.weather;
+package walaniam.weather.mongo;
 
-import com.microsoft.azure.functions.ExecutionContext;
 import com.mongodb.ConnectionString;
+import com.mongodb.Function;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.result.InsertOneResult;
 import lombok.RequiredArgsConstructor;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
 
+import java.util.function.Consumer;
+
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
-import static walaniam.weather.common.logging.LoggingUtils.info;
 
 @RequiredArgsConstructor
-public class WeatherDataMongoRepository implements WeatherDataRepository {
+public class MongoClientExecutor<T> {
 
-    private static final String DB_NAME = "weather";
-    private static final String COLLECTION_NAME = "observations";
-
-    private final ExecutionContext context;
     private final String connectionString;
+    private final String databaseName;
+    private final String collectionName;
+    private final Class<T> collectionType;
 
-    public void save(WeatherData data) {
-        info(context, "Saving data: %s", data);
+    public <Result> Result executeWithResult(Function<MongoCollection<T>, Result> collectionFunction) {
         try (MongoClient client = newMongoClient()) {
-            MongoDatabase db = client.getDatabase(DB_NAME);
-            MongoCollection<WeatherData> collection = db.getCollection(COLLECTION_NAME, WeatherData.class);
-            InsertOneResult insertResult = collection.insertOne(data);
-            info(context, "Inserted: %s", insertResult);
+            MongoDatabase db = client.getDatabase(databaseName);
+            MongoCollection<T> collection = db.getCollection(collectionName, collectionType);
+            return collectionFunction.apply(collection);
+        }
+    }
+
+    public void execute(Consumer<MongoCollection<T>> collectionConsumer) {
+        try (MongoClient client = newMongoClient()) {
+            MongoDatabase db = client.getDatabase(databaseName);
+            MongoCollection<T> collection = db.getCollection(collectionName, collectionType);
+            collectionConsumer.accept(collection);
         }
     }
 

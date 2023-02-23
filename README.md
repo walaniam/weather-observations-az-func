@@ -21,8 +21,7 @@ terraform apply
 ## Build and run locally
 For further commands export random int variable from terraform state
 ```bash
-export TF_RANDOM_INT=$(cd src/main/tf/ && terraform state show random_integer.this |grep result | cut -d "
-=" -f2 |xargs)
+export TF_RANDOM_INT=$(cd src/main/tf/ && terraform state show random_integer.this |grep result | cut -d "=" -f2 |xargs)
 ```
 
 ```bash

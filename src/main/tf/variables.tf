@@ -1,5 +1,6 @@
 # export TF_VAR_azure_subscription_id=
 # export TF_VAR_azure_tenant_id=
+# export TF_VAR_notification_alert_email=
 
 variable "azure_subscription_id" {
   type = string
@@ -17,4 +18,8 @@ variable "azure_default_location" {
 variable "azure_failover_location" {
   type    = string
   default = "northeurope"
+}
+
+variable "notification_alert_email" {
+  type = string
 }

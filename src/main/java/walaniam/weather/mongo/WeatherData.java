@@ -1,4 +1,4 @@
-package walaniam.weather;
+package walaniam.weather.mongo;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,15 +17,15 @@ import static walaniam.weather.common.time.DateTimeUtils.fromUtcString;
 public class WeatherData {
 
     private LocalDateTime dateTime;
-    private String outsideTemperature;
-    private String insideTemperature;
-    private String pressureHpa;
+    private float outsideTemperature;
+    private float insideTemperature;
+    private float pressureHpa;
 
     public static WeatherData of(String csv) {
 
         String[] data =  Pattern.compile(",").splitAsStream(csv)
                 .map(String::trim)
-                .toArray(size -> new String[size]);
+                .toArray(String[]::new);
 
         if (data.length != 4) {
             throw new IllegalArgumentException("Incorrect csv: " + csv);
@@ -33,9 +33,9 @@ public class WeatherData {
 
         return WeatherData.builder()
                 .dateTime(fromUtcString(data[0]))
-                .outsideTemperature(data[1])
-                .insideTemperature(data[2])
-                .pressureHpa(data[3])
+                .outsideTemperature(Float.parseFloat(data[1]))
+                .insideTemperature(Float.parseFloat(data[2]))
+                .pressureHpa(Float.parseFloat(data[3]))
                 .build();
     }
 }
