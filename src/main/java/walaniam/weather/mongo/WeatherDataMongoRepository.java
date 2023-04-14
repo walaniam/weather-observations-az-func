@@ -6,6 +6,8 @@ import com.mongodb.client.model.Sorts;
 import com.mongodb.client.result.InsertOneResult;
 import org.bson.BsonString;
 import org.bson.Document;
+import walaniam.weather.persistence.WeatherData;
+import walaniam.weather.persistence.WeatherDataRepository;
 
 import java.util.ArrayList;
 import java.util.HashSet;

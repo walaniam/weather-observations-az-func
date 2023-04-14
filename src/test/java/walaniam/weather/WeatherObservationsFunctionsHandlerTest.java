@@ -12,7 +12,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import walaniam.weather.common.time.DateTimeUtils;
-import walaniam.weather.mongo.WeatherData;
+import walaniam.weather.function.WeatherDataView;
+import walaniam.weather.function.WeatherObservationsFunctionsHandler;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -87,7 +88,7 @@ class WeatherObservationsFunctionsHandlerTest {
         mockResponseBuilderOf(requestMessage);
 
         HttpResponseMessage responseMessage = underTest.getLatest(requestMessage, executionContext);
-        List<WeatherData> latestObservations = (List<WeatherData>) responseMessage.getBody();
+        List<WeatherDataView> latestObservations = (List<WeatherDataView>) responseMessage.getBody();
         assertThat(latestObservations).hasSize(10);
         assertThat(latestObservations.get(0).getOutsideTemperature()).isEqualTo(19.9f);
         assertThat(latestObservations.get(9).getOutsideTemperature()).isEqualTo(19.0f);
