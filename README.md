@@ -4,6 +4,11 @@
 mvn archetype:generate -DarchetypeGroupId=com.microsoft.azure -DarchetypeArtifactId=azure-functions-archetype -DjavaVersion=11
 ```
 
+## Terraform
+https://developer.hashicorp.com/terraform/tutorials/azure-get-started
+### Installation
+https://developer.hashicorp.com/terraform/tutorials/azure-get-started/install-cli
+
 ## Provision Azure environment
 ### Init
 ```bash
