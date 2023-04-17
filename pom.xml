@@ -12,8 +12,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
-        <azure.functions.maven.plugin.version>1.19.0</azure.functions.maven.plugin.version>
-        <azure.functions.java.library.version>2.0.1</azure.functions.java.library.version>
+        <azure.functions.maven.plugin.version>1.25.0</azure.functions.maven.plugin.version>
+        <azure.functions.java.library.version>2.2.0</azure.functions.java.library.version>
         <tf.random.int>0</tf.random.int> <!-- placeholder -->
         <testcontainers.version>1.17.6</testcontainers.version>
         <org.mapstruct.version>1.5.3.Final</org.mapstruct.version>

@@ -80,6 +80,29 @@ public class WeatherObservationsFunctionsHandler {
         }
     }
 
+    @FunctionName("get-extremes-v1")
+    public HttpResponseMessage getExtremes(
+        @HttpTrigger(name = "req", methods = HttpMethod.GET, authLevel = AuthorizationLevel.ANONYMOUS)
+        HttpRequestMessage<String> request,
+        ExecutionContext context) {
+
+        Integer fromDays = Optional.ofNullable(request.getQueryParameters().get("fromDays")).map(Integer::parseInt).orElse(7);
+        Integer toDays = Optional.ofNullable(request.getQueryParameters().get("toDays")).map(Integer::parseInt).orElse(null);
+
+        logInfo(context, "Getting extremes of fromDays=%s, toDays=%s", fromDays, toDays);
+
+        WeatherDataRepository repository = repositoryProvider.apply(context);
+        try {
+            WeatherExtremes extremes = repository.getExtremes(fromDays, toDays);
+            HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(extremes));
+            builder.header("Content-Type", "application/json");
+            return builder.build();
+        } catch (MongoException e) {
+            logWarn(context, "read failed", e);
+            return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
+        }
+    }
+
     private static <T> HttpResponseMessage.Builder responseBuilderOf(HttpRequestMessage<String> request,
                                                       HttpStatus status,
                                                       Optional<T> message) {
