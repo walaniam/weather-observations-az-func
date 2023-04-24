@@ -15,6 +15,7 @@
         <azure.functions.maven.plugin.version>1.25.0</azure.functions.maven.plugin.version>
         <azure.functions.java.library.version>2.2.0</azure.functions.java.library.version>
         <tf.random.int>0</tf.random.int> <!-- placeholder -->
+        <app.resource.group>weather-observations</app.resource.group>
         <testcontainers.version>1.17.6</testcontainers.version>
         <org.mapstruct.version>1.5.3.Final</org.mapstruct.version>
         <org.projectlombok.version>1.18.26</org.projectlombok.version>
@@ -127,6 +128,11 @@
                                     <regex>[0-9]+</regex>
                                     <regexMessage>'tf.random.int' must contain at least 1 digit</regexMessage>
                                 </requireProperty>
+                                <requireProperty>
+                                    <property>app.resource.group</property>
+                                    <regex>[a-zA-Z]+</regex>
+                                    <regexMessage>'app.resource.group' must contain at least 1 letter</regexMessage>
+                                </requireProperty>
                             </rules>
                         </configuration>
                     </execution>
@@ -138,17 +144,11 @@
                 <version>${azure.functions.maven.plugin.version}</version>
                 <configuration>
                     <appName>weather-observations-${tf.random.int}-func-app</appName>
-                    <resourceGroup>weather-observations</resourceGroup>
+                    <resourceGroup>${app.resource.group}</resourceGroup>
                     <appServicePlanName>weather-observations-service-plan</appServicePlanName>
-                    <appServicePlanResourceGroup>weather-observations</appServicePlanResourceGroup>
-                    <!-- refers https://github.com/microsoft/azure-maven-plugins/wiki/Azure-Functions:-Configuration-Details#supported-regions for all valid values -->
+                    <appServicePlanResourceGroup>${app.resource.group}</appServicePlanResourceGroup>
                     <region>westeurope</region>
-                    <!-- function pricingTier, default to be consumption if not specified -->
-                    <!-- refers https://github.com/microsoft/azure-maven-plugins/wiki/Azure-Functions:-Configuration-Details#supported-pricing-tiers for all valid values -->
-                    <!-- <pricingTier></pricingTier> -->
-                    <!-- Whether to disable application insights, default is false -->
-                    <!-- refers https://github.com/microsoft/azure-maven-plugins/wiki/Azure-Functions:-Configuration-Details for all valid configurations for application insights-->
-                    <!-- <disableAppInsights></disableAppInsights> -->
+<!--                    <disableAppInsights>true</disableAppInsights>-->
                     <runtime>
                         <!-- runtime os, could be windows, linux or docker-->
                         <os>windows</os>

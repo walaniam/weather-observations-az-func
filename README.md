@@ -71,7 +71,9 @@ mvn azure-functions:run -Dtf.random.int=$TF_RANDOM_INT
 ## Deploy to Azure
 ```bash
 az login
-mvn azure-functions:deploy -Dtf.random.int=$TF_RANDOM_INT
+```
+```bash
+mvn clean package azure-functions:deploy -Dtf.random.int=$TF_RANDOM_INT -Dapp.resource.group=$TF_VAR_resource_group_name
 ```
 
 ### Check logs
