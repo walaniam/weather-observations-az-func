@@ -3,7 +3,7 @@ locals {
 }
 
 resource "azurerm_resource_group" "this" {
-  name     = local.project_name
+  name     = var.resource_group_name
   location = var.azure_default_location
 }
 

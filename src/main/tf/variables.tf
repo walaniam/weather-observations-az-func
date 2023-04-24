@@ -20,6 +20,11 @@ variable "azure_failover_location" {
   default = "northeurope"
 }
 
+variable "resource_group_name" {
+  type    = string
+  default = "weather-observations"
+}
+
 variable "notification_alert_email" {
   type = string
 }

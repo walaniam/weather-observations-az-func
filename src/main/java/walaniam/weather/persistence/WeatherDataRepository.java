@@ -1,4 +1,6 @@
-package walaniam.weather.mongo;
+package walaniam.weather.persistence;
+
+import walaniam.weather.function.WeatherExtremes;
 
 import java.util.List;
 
@@ -10,4 +12,6 @@ public interface WeatherDataRepository {
     default List<WeatherData> getLatest() {
         return getLatest(10);
     }
+
+    WeatherExtremes getExtremes(Integer fromDays, Integer toDays);
 }
