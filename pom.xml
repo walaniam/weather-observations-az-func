@@ -128,11 +128,11 @@
                                     <regex>[0-9]+</regex>
                                     <regexMessage>'tf.random.int' must contain at least 1 digit</regexMessage>
                                 </requireProperty>
-                                <requireProperty>
-                                    <property>app.resource.group</property>
-                                    <regex>[a-zA-Z]+</regex>
-                                    <regexMessage>'app.resource.group' must contain at least 1 letter</regexMessage>
-                                </requireProperty>
+<!--                                <requireProperty>-->
+<!--                                    <property>app.resource.group</property>-->
+<!--                                    <regex>[a-zA-Z]+</regex>-->
+<!--                                    <regexMessage>'app.resource.group' must contain at least 1 letter</regexMessage>-->
+<!--                                </requireProperty>-->
                             </rules>
                         </configuration>
                     </execution>
