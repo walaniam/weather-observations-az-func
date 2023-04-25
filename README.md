@@ -89,6 +89,9 @@ See function
 ```bash
 az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name get-latest-observations-v1
 ```
+```bash
+az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name post-observations-v1
+```
 
 See deployment logs  
 ```bash
