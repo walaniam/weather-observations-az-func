@@ -92,6 +92,12 @@ See function
 ```bash
 az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name get-latest-observations-v1
 ```
+List function endpoints  
+```bash
+az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name get-latest-observations-v1 |jq -r '.invokeUrlTemplate'
+az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name get-latest-observation-v1 |jq -r '.invokeUrlTemplate'
+az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name get-extremes-v1 |jq -r '.invokeUrlTemplate'
+```
 ```bash
 az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name post-observations-v1
 ```
@@ -129,9 +135,13 @@ az group delete -g $RG_NAME
 ```
 
 ## Run samples
+Find API key and POST function endpoint
 ```bash
 apiKey=$(az functionapp keys list --resource-group ${RG_NAME} --name ${FUNC_APP} |jq -r '.functionKeys.default')
 postUrl=$(az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name post-observations-v1 |jq -r '.invokeUrlTemplate')
+```
+Run generator
+```bash
 ./generate_samples.sh "$postUrl" "$apiKey"
 ```
 
