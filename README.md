@@ -78,6 +78,9 @@ az functionapp keys set -g ${RG_NAME} -n ${FUNC_APP} --key-type functionKeys --k
 ```bash
 az functionapp function keys list -g ${RG_NAME} -n ${FUNC_APP} --function-name get-latest-observations-v1
 ```
+```bash
+az functionapp function keys list -g ${RG_NAME} -n ${FUNC_APP} --function-name post-observations-v1
+```
 
 ### Azure function management
 See plan  
@@ -123,6 +126,13 @@ az group list --query "[?name == '$RG_NAME']"
 #### Delete resource group together with resources
 ```bash
 az group delete -g $RG_NAME
+```
+
+## Run samples
+```bash
+apiKey=$(az functionapp keys list --resource-group ${RG_NAME} --name ${FUNC_APP} |jq -r '.functionKeys.default')
+postUrl=$(az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name post-observations-v1 |jq -r '.invokeUrlTemplate')
+./generate_samples.sh "$postUrl" "$apiKey"
 ```
 
 ## Maven Properties

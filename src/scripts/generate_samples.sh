@@ -5,7 +5,12 @@ if [[ -z $1 ]]; then
   exit 1
 fi
 
-CONNECTION_URL=$1
+if [[ -z $2 ]]; then
+  echo "Missing API key"
+  exit 1
+fi
+
+CONNECTION_URL="$1?code=$2"
 INTERVAL_SECONDS=1
 
 i=0
@@ -29,7 +34,7 @@ do
   fi
 
   echo "Sending: $observation"
-  curl -d "$observation" -X POST "$CONNECTION_URL"
+  curl -i -d "$observation" -X POST "$CONNECTION_URL"
 
   sleep $INTERVAL_SECONDS
 
