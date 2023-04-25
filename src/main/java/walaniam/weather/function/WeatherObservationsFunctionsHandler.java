@@ -11,6 +11,7 @@ import walaniam.weather.persistence.WeatherData;
 import walaniam.weather.persistence.WeatherDataRepository;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -74,6 +75,31 @@ public class WeatherObservationsFunctionsHandler {
             HttpResponseMessage.Builder responseBuilder = responseBuilderOf(request, HttpStatus.OK, Optional.of(latest));
             responseBuilder.header("Content-Type", "application/json");
             return responseBuilder.build();
+        } catch (MongoException e) {
+            logWarn(context, "read failed", e);
+            return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
+        }
+    }
+
+    @FunctionName("get-latest-observation-v1")
+    public HttpResponseMessage getSingleLatest(
+        @HttpTrigger(name = "req", methods = HttpMethod.GET, authLevel = AuthorizationLevel.ANONYMOUS)
+        HttpRequestMessage<String> request,
+        ExecutionContext context) {
+
+        logInfo(context, "Getting latest single observation");
+
+        WeatherDataRepository repository = repositoryProvider.apply(context);
+        try {
+            WeatherDataView latest = repository.getLatest(1).stream()
+                .map(WeatherDataMapper.INSTANCE::toDataView)
+                .findFirst()
+                .orElseThrow();
+            HttpResponseMessage.Builder responseBuilder = responseBuilderOf(request, HttpStatus.OK, Optional.of(latest));
+            responseBuilder.header("Content-Type", "application/json");
+            return responseBuilder.build();
+        } catch (NoSuchElementException e) {
+            return responseOf(request, HttpStatus.NOT_FOUND, Optional.empty());
         } catch (MongoException e) {
             logWarn(context, "read failed", e);
             return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));

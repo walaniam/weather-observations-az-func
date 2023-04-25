@@ -7,14 +7,14 @@ mvn archetype:generate -DarchetypeGroupId=com.microsoft.azure -DarchetypeArtifac
 
 ## Development environment setup
 
+### Azure CLI
+How to install Azure CLI https://learn.microsoft.com/en-us/cli/azure/install-azure-cli
+
 ### Terraform
 #### About Terraform
 https://developer.hashicorp.com/terraform/tutorials/azure-get-started
 #### Install CLI
 https://developer.hashicorp.com/terraform/tutorials/azure-get-started/install-cli  
-
-### Azure CLI
-https://learn.microsoft.com/en-us/cli/azure/functionapp/keys?view=azure-cli-latest
 
 ## Provision Azure environment
 ### Create tfvars file
@@ -50,7 +50,7 @@ export FUNC_APP=$(cd src/main/tf && terraform state show azurerm_windows_functio
 export RG_NAME=$(cat src/main/tf/myenv.auto.tfvars |grep resource_group_name |cut -d "=" -f2 |xargs |tr -d '[:space:]')
 ```
 
-## Build and run locally
+## Build functions and run locally
 ```bash
 mvn clean package
 mvn azure-functions:run
@@ -95,7 +95,7 @@ See deployment logs
 az functionapp log deployment list -n $FUNC_APP -g $RG_NAME
 ```
 
-### Check logs
+### Check function logs
 ```bash
 func azure functionapp logstream ${FUNC_APP}
 ```
@@ -104,10 +104,22 @@ func azure functionapp logstream ${FUNC_APP}
 ```bash
 funcAppId=$(az resource show -g $RG_NAME -n $FUNC_APP --resource-type 'Microsoft.Web/sites' |jq -r '.id')
 ```
+Sample metrics  
 ```bash
 az monitor metrics list --resource $funcAppId --metrics "MemoryWorkingSet"
 az monitor metrics list --resource $funcAppId --metrics "Requests"
 az monitor metrics list --resource $funcAppId --metrics "Http2xx"
+```
+
+### Other useful commands
+#### Query resource groups
+```bash
+az group list --query "[?name == '$RG_NAME']"
+```
+
+#### Delete resource group together with resources
+```bash
+az group delete -g $RG_NAME
 ```
 
 ## Maven Properties
