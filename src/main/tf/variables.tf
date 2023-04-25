@@ -10,6 +10,10 @@ variable "azure_tenant_id" {
   type = string
 }
 
+variable "notification_alert_email" {
+  type = string
+}
+
 variable "azure_default_location" {
   type    = string
   default = "westeurope"
@@ -21,10 +25,17 @@ variable "azure_failover_location" {
 }
 
 variable "resource_group_name" {
-  type    = string
-  default = "weather-observations"
+  type = string
 }
 
-variable "notification_alert_email" {
+variable "project_name" {
+  type = string
+}
+
+variable "project_unique_id" {
+  type = number
+}
+
+variable "function_storage_account" {
   type = string
 }

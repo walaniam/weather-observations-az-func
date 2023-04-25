@@ -1,20 +1,11 @@
-locals {
-  project_name = "weather-observations"
-}
-
 resource "azurerm_resource_group" "this" {
   name     = var.resource_group_name
   location = var.azure_default_location
 }
 
-resource "random_integer" "this" {
-  min = 10000
-  max = 99999
-}
-
 resource "azurerm_cosmosdb_account" "mongo" {
   location             = azurerm_resource_group.this.location
-  name                 = "${local.project_name}-${random_integer.this.result}"
+  name                 = "${var.project_name}-${var.project_unique_id}"
   resource_group_name  = azurerm_resource_group.this.name
   offer_type           = "Standard"
   kind                 = "MongoDB"
@@ -59,13 +50,13 @@ resource "azurerm_storage_account" "function_app_storage" {
   account_replication_type = "LRS"
   account_tier             = "Standard"
   location                 = azurerm_resource_group.this.location
-  name                     = "weatherfuncappsa${random_integer.this.result}"
+  name                     = "${var.function_storage_account}${var.project_unique_id}"
   resource_group_name      = azurerm_resource_group.this.name
 }
 
 resource "azurerm_service_plan" "this" {
   location            = azurerm_resource_group.this.location
-  name                = "${local.project_name}-service-plan"
+  name                = "${var.project_name}-service-plan"
   os_type             = "Windows"
   resource_group_name = azurerm_resource_group.this.name
   sku_name            = "Y1"
@@ -74,13 +65,13 @@ resource "azurerm_service_plan" "this" {
 resource "azurerm_application_insights" "this" {
   application_type    = "java"
   location            = azurerm_resource_group.this.location
-  name                = "${local.project_name}-app-insights"
+  name                = "${var.project_name}-app-insights"
   resource_group_name = azurerm_resource_group.this.name
 }
 
 resource "azurerm_windows_function_app" "this" {
   location                   = azurerm_service_plan.this.location
-  name                       = "${local.project_name}-${random_integer.this.result}-func-app"
+  name                       = "${var.project_name}-${var.project_unique_id}-func-app"
   resource_group_name        = azurerm_service_plan.this.resource_group_name
   service_plan_id            = azurerm_service_plan.this.id
   storage_account_name       = azurerm_storage_account.function_app_storage.name
@@ -105,7 +96,7 @@ resource "azurerm_windows_function_app" "this" {
 
 # Cost alerts
 resource "azurerm_consumption_budget_resource_group" "rg_budget" {
-  name              = "${local.project_name}-budget"
+  name              = "${var.project_name}-budget"
   resource_group_id = azurerm_resource_group.this.id
   amount            = 20
   time_grain        = "Monthly"
