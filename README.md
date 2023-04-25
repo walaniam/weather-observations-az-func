@@ -25,7 +25,7 @@ azure_subscription_id    = "your azure subscription id"
 azure_tenant_id          = "your azure tenant id"
 resource_group_name      = "resource group in which resources will be created"
 project_name             = "name used for resource that need to have unique name"
-function_storage_account = "name used for function app storage accoung that need to have unique name"
+function_storage_account = "name used for function app storage account that need to have unique name"
 project_unique_id        = 123456 # additional identifier for uniqueness
 notification_alert_email = "your email"
 ```
@@ -50,20 +50,6 @@ export FUNC_APP=$(cd src/main/tf && terraform state show azurerm_windows_functio
 export RG_NAME=$(cat src/main/tf/myenv.auto.tfvars |grep resource_group_name |cut -d "=" -f2 |xargs |tr -d '[:space:]')
 ```
 
-### Manage function app keys
-#### List keys
-```bash
-az functionapp keys list --resource-group ${RG_NAME} --name ${FUNC_APP}
-```
-#### Set key
-```bash
-az functionapp keys set -g ${RG_NAME} -n ${FUNC_APP} --key-type functionKeys --key-name MyKeyName --key-value MyKeyValue
-```
-### Manage function keys
-```bash
-az functionapp function keys list -g ${RG_NAME} -n ${FUNC_APP} --function-name get-latest-observations-v1
-```
-
 ## Build and run locally
 ```bash
 mvn clean package
@@ -78,17 +64,53 @@ az login
 mvn clean package azure-functions:deploy -Dapp.name=$FUNC_APP -Dapp.plan.name=$FUNC_APP_PLAN -Dapp.resource.group=$RG_NAME
 ```
 
+## Azure CLI
+### Manage function app keys
+#### List keys
+```bash
+az functionapp keys list --resource-group ${RG_NAME} --name ${FUNC_APP}
+```
+#### Set key
+```bash
+az functionapp keys set -g ${RG_NAME} -n ${FUNC_APP} --key-type functionKeys --key-name MyKeyName --key-value MyKeyValue
+```
+### Manage function keys
+```bash
+az functionapp function keys list -g ${RG_NAME} -n ${FUNC_APP} --function-name get-latest-observations-v1
+```
+
+### Azure function management
+See plan  
+```bash
+az appservice plan show -n $FUNC_APP_PLAN -g $RG_NAME
+```
+
+See function  
+```bash
+az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name get-latest-observations-v1
+```
+
+See deployment logs  
+```bash
+az functionapp log deployment list -n $FUNC_APP -g $RG_NAME
+```
+
 ### Check logs
 ```bash
 func azure functionapp logstream ${FUNC_APP}
 ```
 
-### Show function
+### Metrics
 ```bash
-az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name get-latest-observations-v1
+funcAppId=$(az resource show -g $RG_NAME -n $FUNC_APP --resource-type 'Microsoft.Web/sites' |jq -r '.id')
+```
+```bash
+az monitor metrics list --resource $funcAppId --metrics "MemoryWorkingSet"
+az monitor metrics list --resource $funcAppId --metrics "Requests"
+az monitor metrics list --resource $funcAppId --metrics "Http2xx"
 ```
 
-## Properties
+## Maven Properties
 ```bash
 mvn help:evaluate
 ```
