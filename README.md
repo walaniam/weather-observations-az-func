@@ -145,7 +145,10 @@ Run generator
 ./generate_samples.sh "$postUrl" "$apiKey"
 ```
 
-## Maven Properties
+## Maven project
+### Azure Maven Plugin
+https://github.com/microsoft/azure-maven-plugins/wiki/Azure-Functions
+### Maven Properties
 ```bash
 mvn help:evaluate
 ```
