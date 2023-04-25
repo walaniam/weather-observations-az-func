@@ -49,3 +49,4 @@ obj/
 
 # Environment settings (and secrets)
 .env
+*.tfvars

@@ -5,7 +5,7 @@
 mvn archetype:generate -DarchetypeGroupId=com.microsoft.azure -DarchetypeArtifactId=azure-functions-archetype -DjavaVersion=11
 ```
 
-## Environment setup
+## Development environment setup
 
 ### Terraform
 #### About Terraform
@@ -17,19 +17,22 @@ https://developer.hashicorp.com/terraform/tutorials/azure-get-started/install-cl
 https://learn.microsoft.com/en-us/cli/azure/functionapp/keys?view=azure-cli-latest
 
 ## Provision Azure environment
+### Create tfvars file
+Create file with `.auto.tfvars` extension in `src/main/tf` directory, example `src/main/tf/myenv.auto.tfvars`  
+Set variable in this file like in this example below
+```terraform
+azure_subscription_id    = "your azure subscription id"
+azure_tenant_id          = "your azure tenant id"
+resource_group_name      = "resource group in which resources will be created"
+project_name             = "name used for resource that need to have unique name"
+function_storage_account = "name used for function app storage accoung that need to have unique name"
+project_unique_id        = 123456 # additional identifier for uniqueness
+notification_alert_email = "your email"
+```
 ### Init Terraform
 ```bash
 cd src/main/tf
 terraform init
-```
-
-### Export variables
-For each set proper value
-```bash
-export TF_VAR_azure_subscription_id=
-export TF_VAR_azure_tenant_id=
-export TF_VAR_notification_alert_email=
-export TF_VAR_resource_group_name=
 ```
 
 ### Create environment
@@ -40,32 +43,31 @@ terraform apply
 ```
 
 ## Work with Environment
-
-### Export TF_RANDOM_INT
-For further commands export resource group name and random int variable (from terraform state)
+### Export shell variables
 ```bash
-export TF_RANDOM_INT=$(cd src/main/tf/ && terraform state show random_integer.this |grep result | cut -d "=" -f2 |xargs)
-export TF_VAR_resource_group_name=
+export FUNC_APP_PLAN=$(cd src/main/tf && terraform state show azurerm_service_plan.this |grep name |grep -v resource_group_name |grep -v sku_name |cut -d "=" -f2 |xargs |tr -d '[:space:]')
+export FUNC_APP=$(cd src/main/tf && terraform state show azurerm_windows_function_app.this |grep name |grep -v hostname |grep -v resource_group_name |grep -v storage_account_name |head -n1 |cut -d "=" -f2 |xargs |tr -d '[:space:]')
+export RG_NAME=$(cat src/main/tf/myenv.auto.tfvars |grep resource_group_name |cut -d "=" -f2 |xargs |tr -d '[:space:]')
 ```
 
 ### Manage function app keys
 #### List keys
 ```bash
-az functionapp keys list -g ${TF_VAR_resource_group_name} -n weather-observations-${TF_RANDOM_INT}-func-app
+az functionapp keys list --resource-group ${RG_NAME} --name ${FUNC_APP}
 ```
 #### Set key
 ```bash
-az functionapp keys set -g ${TF_VAR_resource_group_name} -n weather-observations-${TF_RANDOM_INT}-func-app --key-type functionKeys --key-name MyKeyName --key-value MyKeyValue
+az functionapp keys set -g ${RG_NAME} -n ${FUNC_APP} --key-type functionKeys --key-name MyKeyName --key-value MyKeyValue
 ```
 ### Manage function keys
 ```bash
-az functionapp function keys list -g ${TF_VAR_resource_group_name} -n weather-observations-${TF_RANDOM_INT}-func-app --function-name get-latest-observations-v1
+az functionapp function keys list -g ${RG_NAME} -n ${FUNC_APP} --function-name get-latest-observations-v1
 ```
 
 ## Build and run locally
 ```bash
-mvn clean package -Dtf.random.int=$TF_RANDOM_INT
-mvn azure-functions:run -Dtf.random.int=$TF_RANDOM_INT
+mvn clean package
+mvn azure-functions:run
 ```
 
 ## Deploy to Azure
@@ -73,17 +75,17 @@ mvn azure-functions:run -Dtf.random.int=$TF_RANDOM_INT
 az login
 ```
 ```bash
-mvn clean package azure-functions:deploy -Dtf.random.int=$TF_RANDOM_INT -Dapp.resource.group=$TF_VAR_resource_group_name
+mvn clean package azure-functions:deploy -Dapp.name=$FUNC_APP -Dapp.plan.name=$FUNC_APP_PLAN -Dapp.resource.group=$RG_NAME
 ```
 
 ### Check logs
 ```bash
-func azure functionapp logstream weather-observations-${TF_RANDOM_INT}-func-app
+func azure functionapp logstream ${FUNC_APP}
 ```
 
 ### Show function
 ```bash
-az functionapp function show -g ${TF_VAR_resource_group_name} -n weather-observations-${TF_RANDOM_INT}-func-app --function-name get-latest-observations-v1
+az functionapp function show -g ${RG_NAME} -n ${FUNC_APP} --function-name get-latest-observations-v1
 ```
 
 ## Properties
