@@ -114,3 +114,8 @@ resource "azurerm_consumption_budget_resource_group" "rg_budget" {
     ]
   }
 }
+
+output "function_app_hostname" {
+  value = azurerm_windows_function_app.this.default_hostname
+  sensitive = false
+}
