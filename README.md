@@ -51,8 +51,13 @@ export RG_NAME=$(cat src/main/tf/myenv.auto.tfvars |grep resource_group_name |cu
 ```
 
 ## Build functions and run locally
+### Install Azure Functions Core Tools
+[https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=v4%2Cmacos%2Cjava%2Cportal%2Cbash)
+### Build and run
 ```bash
 mvn clean package
+```
+```bash
 mvn azure-functions:run
 ```
 
