@@ -57,8 +57,13 @@ export RG_NAME=$(cat src/main/tf/myenv.auto.tfvars |grep resource_group_name |cu
 ```bash
 mvn clean package
 ```
+Run locally  
 ```bash
 mvn azure-functions:run
+```
+Generate samples  
+```bash
+ ./generate_samples.sh http://localhost:7071/api/post-observations-v1 "ignore"
 ```
 
 ## Deploy to Azure
