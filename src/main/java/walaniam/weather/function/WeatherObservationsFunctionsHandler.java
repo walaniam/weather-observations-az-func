@@ -27,7 +27,13 @@ public class WeatherObservationsFunctionsHandler {
 
     @SuppressWarnings("unused")
     public WeatherObservationsFunctionsHandler() {
-        this(System.getenv("CosmosDBConnectionString"));
+        this(Optional.ofNullable(System.getenv("CosmosDBConnectionString"))
+            .orElseGet(() -> {
+                String localEnvMongo = "mongodb://mongo:mongo@localhost/weather_local:27017?ssl=false&authSource=admin";
+                System.out.println("Using LOCAL env connection: " + localEnvMongo);
+                System.out.println();
+                return localEnvMongo;
+            }));
     }
 
     public WeatherObservationsFunctionsHandler(String connectionString) {
