@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static walaniam.weather.common.logging.LoggingUtils.logInfo;
@@ -77,7 +76,7 @@ public class WeatherObservationsFunctionsHandler {
         try {
             List<WeatherDataView> latest = repository.getLatest().stream()
                 .map(WeatherDataMapper.INSTANCE::toDataView)
-                .collect(Collectors.toList());
+                .toList();
             HttpResponseMessage.Builder responseBuilder = responseBuilderOf(request, HttpStatus.OK, Optional.of(latest));
             responseBuilder.header("Content-Type", "application/json");
             return responseBuilder.build();
@@ -118,8 +117,12 @@ public class WeatherObservationsFunctionsHandler {
         HttpRequestMessage<String> request,
         ExecutionContext context) {
 
-        Integer fromDays = Optional.ofNullable(request.getQueryParameters().get("fromDays")).map(Integer::parseInt).orElse(7);
-        Integer toDays = Optional.ofNullable(request.getQueryParameters().get("toDays")).map(Integer::parseInt).orElse(null);
+        Integer fromDays = Optional.ofNullable(request.getQueryParameters().get("fromDays"))
+            .map(Integer::parseInt)
+            .orElse(7);
+        Integer toDays = Optional.ofNullable(request.getQueryParameters().get("toDays"))
+            .map(Integer::parseInt)
+            .orElse(null);
 
         logInfo(context, "Getting extremes of fromDays=%s, toDays=%s", fromDays, toDays);
 
