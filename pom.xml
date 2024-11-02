@@ -11,15 +11,15 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>11</java.version>
-        <azure.functions.maven.plugin.version>1.25.0</azure.functions.maven.plugin.version>
+        <java.version>17</java.version>
+        <azure.functions.maven.plugin.version>1.36.0</azure.functions.maven.plugin.version>
         <azure.functions.java.library.version>2.2.0</azure.functions.java.library.version>
         <app.resource.group>weather-observations</app.resource.group>
         <app.name>weather-observations-app</app.name>
         <app.plan.name>weather-observations-plan</app.plan.name>
-        <testcontainers.version>1.17.6</testcontainers.version>
-        <org.mapstruct.version>1.5.3.Final</org.mapstruct.version>
-        <org.projectlombok.version>1.18.26</org.projectlombok.version>
+        <testcontainers.version>1.19.8</testcontainers.version>
+        <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
+        <org.projectlombok.version>1.18.34</org.projectlombok.version>
     </properties>
 
     <dependencies>
@@ -37,12 +37,12 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.12.0</version>
+            <version>3.17.0</version>
         </dependency>
         <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongodb-driver-sync</artifactId>
-            <version>4.7.2</version>
+            <version>4.11.4</version>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -88,7 +88,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.11.0</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
