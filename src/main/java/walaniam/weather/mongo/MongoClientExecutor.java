@@ -24,7 +24,7 @@ public class MongoClientExecutor<T> {
     private final String collectionName;
     private final Class<T> collectionType;
 
-    public <Result> Result executeWithResult(Function<MongoCollection<T>, Result> collectionFunction) {
+    public <RESULT> RESULT executeWithResult(Function<MongoCollection<T>, RESULT> collectionFunction) {
         try (MongoClient client = newMongoClient()) {
             MongoDatabase db = client.getDatabase(databaseName);
             MongoCollection<T> collection = db.getCollection(collectionName, collectionType);
