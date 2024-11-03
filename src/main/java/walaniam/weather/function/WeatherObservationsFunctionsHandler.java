@@ -6,10 +6,12 @@ import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.HttpTrigger;
 import com.mongodb.MongoException;
 import lombok.RequiredArgsConstructor;
+import walaniam.weather.common.time.DateTimeUtils;
 import walaniam.weather.mongo.WeatherDataMongoRepository;
 import walaniam.weather.persistence.WeatherData;
 import walaniam.weather.persistence.WeatherDataRepository;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -107,6 +109,45 @@ public class WeatherObservationsFunctionsHandler {
             return responseOf(request, HttpStatus.NOT_FOUND, Optional.empty());
         } catch (MongoException e) {
             logWarn(context, "read failed", e);
+            return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
+        }
+    }
+
+    @FunctionName("get-chart-v1")
+    public HttpResponseMessage getChart(
+        @HttpTrigger(name = "req", methods = HttpMethod.GET, authLevel = AuthorizationLevel.ANONYMOUS)
+        HttpRequestMessage<String> request,
+        ExecutionContext context) {
+
+        Integer fromDays = Optional.ofNullable(request.getQueryParameters().get("fromDays"))
+            .map(Integer::parseInt)
+            .orElse(7);
+        Integer toDays = Optional.ofNullable(request.getQueryParameters().get("toDays"))
+            .map(Integer::parseInt)
+            .orElse(null);
+
+        logInfo(context, "Getting extremes of fromDays=%s, toDays=%s", fromDays, toDays);
+
+        WeatherDataRepository repository = repositoryProvider.apply(context);
+        try {
+            List<WeatherData> observations = repository.getRange(fromDays, toDays);
+            String label = "Weather data: %s to %s".formatted(
+                DateTimeUtils.toDate(observations.get(0).getDateTime()),
+                DateTimeUtils.toDate(observations.get(observations.size() - 1).getDateTime())
+            );
+            byte[] pngBytes = ChartGenerator.createChart(observations);
+            String htmlPage = HtmlGenerator.generateHtmlWithImage(label, pngBytes);
+
+            HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(htmlPage));
+            builder.header("Content-Type", "text/html");
+            return builder.build();
+
+        } catch (NoSuchElementException e) {
+            return responseOf(request, HttpStatus.NOT_FOUND, Optional.empty());
+        } catch (MongoException e) {
+            logWarn(context, "read failed", e);
+            return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
+        } catch (IOException e) {
             return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
         }
     }

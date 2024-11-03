@@ -18,4 +18,9 @@ public class DateTimeUtils {
     public static String toUtcString(LocalDateTime time) {
         return time.format(DT_FORMATTER);
     }
+
+    public static String toDate(LocalDateTime dateTime) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        return dateTime.format(formatter);
+    }
 }

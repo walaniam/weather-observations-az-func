@@ -13,5 +13,7 @@ public interface WeatherDataRepository {
         return getLatest(10);
     }
 
+    List<WeatherData> getRange(Integer fromDays, Integer toDays);
+
     WeatherExtremes getExtremes(Integer fromDays, Integer toDays);
 }
