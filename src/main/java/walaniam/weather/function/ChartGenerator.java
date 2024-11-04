@@ -24,47 +24,6 @@ class ChartGenerator {
 
     private static final ZoneId ZONE_ID = ZoneId.of("Europe/Warsaw");
 
-//    public static byte[] createChart(List<WeatherData> weatherData) throws IOException {
-//        // Create TimeSeries for Outside Temperature and Pressure
-//        TimeSeries outsideTemperatureSeries = new TimeSeries("Outside Temperature (°C)");
-//        TimeSeries pressureSeries = new TimeSeries("Pressure (hPa)");
-//
-//        for (WeatherData data : weatherData) {
-//            Second timePoint = new Second(
-//                java.util.Date.from(data.getDateTime().atZone(ZONE_ID).toInstant())
-//            );
-//            outsideTemperatureSeries.add(timePoint, data.getOutsideTemperature());
-//            pressureSeries.add(timePoint, data.getPressureHpa());
-//        }
-//
-//        // Create a dataset and add both series to it
-//        TimeSeriesCollection dataset = new TimeSeriesCollection();
-//        dataset.addSeries(outsideTemperatureSeries);
-//        dataset.addSeries(pressureSeries);
-//
-//        // Create the chart
-//        JFreeChart chart = ChartFactory.createTimeSeriesChart(
-//            "Weather Data",
-//            "Time",
-//            "Values",
-//            dataset,
-//            true,
-//            true,
-//            false
-//        );
-//
-//        // Customize plot and renderer for better visuals
-//        XYPlot plot = chart.getXYPlot();
-//        XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(true, false);
-//        plot.setRenderer(renderer);
-//
-//        // Custom colors for series
-//        renderer.setSeriesPaint(0, Color.RED);   // Outside Temperature
-//        renderer.setSeriesPaint(1, Color.BLUE);  // Pressure
-//
-//        return chartToPngBytes(chart, 1600, 900);
-//    }
-
     public static byte[] createChart(List<WeatherData> weatherData) throws IOException {
         // Create TimeSeries for Outside Temperature and Pressure
         TimeSeries outsideTemperatureSeries = new TimeSeries("Outside Temperature (°C)");
@@ -109,7 +68,10 @@ class ChartGenerator {
 
         // Add a secondary axis for pressure
         NumberAxis pressureAxis = new NumberAxis("Pressure (hPa)");
-        pressureAxis.setRange(880, 1080);
+        pressureAxis.setRange(
+            roundDownTo10(weatherData.stream().mapToDouble(WeatherData::getPressureHpa).min().orElse(900)),
+            roundUpTo10(weatherData.stream().mapToDouble(WeatherData::getPressureHpa).max().orElse(1050))
+        );
         plot.setRangeAxis(1, pressureAxis);  // Adds a secondary range axis on the right
         plot.mapDatasetToRangeAxis(1, 1);    // Maps the second dataset to the right axis
 
@@ -129,5 +91,13 @@ class ChartGenerator {
         var byteArrayOutputStream = new ByteArrayOutputStream();
         ChartUtils.writeChartAsPNG(byteArrayOutputStream, chart, width, height);
         return byteArrayOutputStream.toByteArray();
+    }
+
+    private static double roundDownTo10(double number) {
+        return Math.floor(number / 10) * 10;
+    }
+
+    private static double roundUpTo10(double number) {
+        return Math.ceil(number / 10) * 10;
     }
 }
