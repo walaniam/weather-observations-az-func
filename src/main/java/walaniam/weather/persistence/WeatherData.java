@@ -5,10 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.regex.Pattern;
-
-import static walaniam.weather.common.time.DateTimeUtils.fromUtcString;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -31,8 +31,10 @@ public class WeatherData {
             throw new IllegalArgumentException("Incorrect csv: " + csv);
         }
 
+        // ignore data[0] which represents LocalDateTime of remote sensor
+        LocalDateTime utcDateTime = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
         return WeatherData.builder()
-                .dateTime(fromUtcString(data[0]))
+                .dateTime(utcDateTime)
                 .outsideTemperature(Float.parseFloat(data[1]))
                 .insideTemperature(Float.parseFloat(data[2]))
                 .pressureHpa(Float.parseFloat(data[3]))

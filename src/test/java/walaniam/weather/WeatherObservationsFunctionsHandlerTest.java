@@ -44,7 +44,7 @@ class WeatherObservationsFunctionsHandlerTest {
     }
 
     @Test
-    public void shouldPostObservation() {
+    void shouldPostObservation() {
         // Setup
         @SuppressWarnings("unchecked")
         HttpRequestMessage<String> req = mock(HttpRequestMessage.class);
@@ -64,16 +64,15 @@ class WeatherObservationsFunctionsHandlerTest {
     }
 
     @Test
-    public void shouldPostAndReadObservations() {
+    void shouldPostAndReadObservations() {
 
         var requestMessage = mock(HttpRequestMessage.class);
         mockResponseBuilderOf(requestMessage);
 
         IntStream.range(0, 100).forEach(index -> {
-            var dateTime = LocalDateTime.of(2100, 02, 02, 10, 10).plusHours(index);
             String outTemp = String.valueOf(10 + index / 10f);
             String inTemp = String.valueOf(20 + index / 10f);
-            var observation = String.format("%s,%s,%s,998", DateTimeUtils.toUtcString(dateTime), outTemp, inTemp);
+            var observation = String.format("%s,%s,%s,998", "ignored", outTemp, inTemp);
 
             doReturn(observation).when(requestMessage).getBody();
 
