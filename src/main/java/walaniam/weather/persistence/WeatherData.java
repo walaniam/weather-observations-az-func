@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.regex.Pattern;
 
 @NoArgsConstructor
@@ -33,10 +32,7 @@ public class WeatherData {
         }
 
         // ignore data[0] which represents LocalDateTime of remote sensor
-        LocalDateTime utcDateTime = LocalDateTime.ofInstant(
-            Instant.now().truncatedTo(ChronoUnit.SECONDS),
-            ZoneOffset.UTC
-        );
+        LocalDateTime utcDateTime = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
         return WeatherData.builder()
                 .dateTime(utcDateTime)
                 .outsideTemperature(Float.parseFloat(data[1]))

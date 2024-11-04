@@ -1,6 +1,7 @@
 package walaniam.weather.persistence;
 
 import walaniam.weather.function.WeatherExtremes;
+import walaniam.weather.mongo.DateRange;
 
 import java.util.List;
 
@@ -13,7 +14,7 @@ public interface WeatherDataRepository {
         return getLatest(10);
     }
 
-    List<WeatherData> getRange(Integer fromDays, Integer toDays);
+    List<WeatherData> getRange(DateRange dateRange);
 
-    WeatherExtremes getExtremes(Integer fromDays, Integer toDays);
+    WeatherExtremes getExtremes(DateRange dateRange);
 }

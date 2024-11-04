@@ -7,6 +7,7 @@ import com.microsoft.azure.functions.annotation.HttpTrigger;
 import com.mongodb.MongoException;
 import lombok.RequiredArgsConstructor;
 import walaniam.weather.common.time.DateTimeUtils;
+import walaniam.weather.mongo.DateRange;
 import walaniam.weather.mongo.WeatherDataMongoRepository;
 import walaniam.weather.persistence.WeatherData;
 import walaniam.weather.persistence.WeatherDataRepository;
@@ -119,18 +120,13 @@ public class WeatherObservationsFunctionsHandler {
         HttpRequestMessage<String> request,
         ExecutionContext context) {
 
-        Integer fromDays = Optional.ofNullable(request.getQueryParameters().get("fromDays"))
-            .map(Integer::parseInt)
-            .orElse(7);
-        Integer toDays = Optional.ofNullable(request.getQueryParameters().get("toDays"))
-            .map(Integer::parseInt)
-            .orElse(null);
+        DateRange dateRange = DateRangeRequestParamsResolver.fromRequest(request);
 
-        logInfo(context, "Getting extremes of fromDays=%s, toDays=%s", fromDays, toDays);
+        logInfo(context, "Getting extremes of in range %s", dateRange);
 
         WeatherDataRepository repository = repositoryProvider.apply(context);
         try {
-            List<WeatherData> observations = repository.getRange(fromDays, toDays);
+            List<WeatherData> observations = repository.getRange(dateRange);
             String label = "Weather data: %s to %s".formatted(
                 DateTimeUtils.toDate(observations.get(0).getDateTime()),
                 DateTimeUtils.toDate(observations.get(observations.size() - 1).getDateTime())
@@ -158,18 +154,13 @@ public class WeatherObservationsFunctionsHandler {
         HttpRequestMessage<String> request,
         ExecutionContext context) {
 
-        Integer fromDays = Optional.ofNullable(request.getQueryParameters().get("fromDays"))
-            .map(Integer::parseInt)
-            .orElse(7);
-        Integer toDays = Optional.ofNullable(request.getQueryParameters().get("toDays"))
-            .map(Integer::parseInt)
-            .orElse(null);
+        DateRange dateRange = DateRangeRequestParamsResolver.fromRequest(request);
 
-        logInfo(context, "Getting extremes of fromDays=%s, toDays=%s", fromDays, toDays);
+        logInfo(context, "Getting extremes in range=%s", dateRange);
 
         WeatherDataRepository repository = repositoryProvider.apply(context);
         try {
-            WeatherExtremes extremes = repository.getExtremes(fromDays, toDays);
+            WeatherExtremes extremes = repository.getExtremes(dateRange);
             HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(extremes));
             builder.header("Content-Type", "application/json");
             return builder.build();

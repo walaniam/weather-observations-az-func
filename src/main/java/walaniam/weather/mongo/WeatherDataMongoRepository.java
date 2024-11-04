@@ -14,7 +14,7 @@ import walaniam.weather.function.WeatherExtremes;
 import walaniam.weather.persistence.WeatherData;
 import walaniam.weather.persistence.WeatherDataRepository;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import static com.mongodb.client.model.Filters.gte;
@@ -86,10 +86,9 @@ public class WeatherDataMongoRepository implements WeatherDataRepository {
     }
 
     @Override
-    public List<WeatherData> getRange(Integer fromDays, Integer toDays) {
-        validateRange(fromDays, toDays);
-        var fromDate = LocalDate.now().minusDays(fromDays);
-        var toDate = (toDays == null) ? null : LocalDate.now().minusDays(toDays);
+    public List<WeatherData> getRange(DateRange dateRange) {
+        LocalDateTime fromDate = dateRange.from();
+        LocalDateTime toDate = dateRange.to();
         logInfo(context, "Getting in range fromDate=%s, toDate=%s", fromDate, toDate);
 
         return mongoExecutor.executeWithResult(collection -> {
@@ -105,12 +104,10 @@ public class WeatherDataMongoRepository implements WeatherDataRepository {
     }
 
     @Override
-    public WeatherExtremes getExtremes(Integer fromDays, Integer toDays) {
+    public WeatherExtremes getExtremes(DateRange dateRange) {
 
-        validateRange(fromDays, toDays);
-
-        var fromDate = LocalDate.now().minusDays(fromDays);
-        var toDate = (toDays == null) ? null : LocalDate.now().minusDays(toDays);
+        LocalDateTime fromDate = dateRange.from();
+        LocalDateTime toDate = dateRange.to();
 
         logInfo(context, "Getting extremes fromDate=%s, toDate=%s", fromDate, toDate);
 
@@ -156,17 +153,5 @@ public class WeatherDataMongoRepository implements WeatherDataRepository {
                 .minPressure(minPressure)
                 .build();
         });
-    }
-
-    private static void validateRange(Integer fromDays, Integer toDays) {
-        if (fromDays == null) {
-            throw new IllegalArgumentException("fromDays cannot be null");
-        }
-        if (fromDays < 1 || (toDays != null && toDays < 1)) {
-            throw new IllegalArgumentException("fromDays/toDays must be positive int");
-        }
-        if (toDays != null && fromDays < toDays) {
-            throw new IllegalArgumentException("fromDays must be greater than toDays");
-        }
     }
 }
