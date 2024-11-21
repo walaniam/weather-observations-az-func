@@ -1,5 +1,7 @@
 package walaniam.weather.function;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
@@ -20,6 +22,7 @@ import java.io.IOException;
 import java.time.ZoneId;
 import java.util.List;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 class ChartGenerator {
 
     private static final ZoneId ZONE_ID = ZoneId.of("Europe/Warsaw");
