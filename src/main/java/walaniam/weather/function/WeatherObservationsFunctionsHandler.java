@@ -127,12 +127,7 @@ public class WeatherObservationsFunctionsHandler {
         WeatherDataRepository repository = repositoryProvider.apply(context);
         try {
             List<WeatherData> observations = repository.getRange(dateRange);
-            String label = "Weather data: %s to %s".formatted(
-                DateTimeUtils.toDate(observations.get(0).getDateTime()),
-                DateTimeUtils.toDate(observations.get(observations.size() - 1).getDateTime())
-            );
-            byte[] pngBytes = ChartGenerator.createChart(observations);
-            String htmlPage = HtmlGenerator.generateHtmlWithImage(label, pngBytes);
+            String htmlPage = HtmlGenerator.generateHtmlWithImage(observations);
 
             HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(htmlPage));
             builder.header("Content-Type", "text/html");
