@@ -11,9 +11,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <azure.functions.maven.plugin.version>1.42.0</azure.functions.maven.plugin.version>
-        <azure.functions.java.library.version>2.2.0</azure.functions.java.library.version>
+        <azure.functions.java.library.version>3.1.0</azure.functions.java.library.version>
         <app.resource.group>weather-observations</app.resource.group>
         <app.name>weather-observations-app</app.name>
         <app.plan.name>weather-observations-plan</app.plan.name>
@@ -59,13 +59,13 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.9.2</version>
+            <version>5.11.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.11.0</version>
+            <version>5.15.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -95,8 +95,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.14.1</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <release>${java.version}</release>
                     <encoding>${project.build.sourceEncoding}</encoding>
                     <annotationProcessorPaths>
                         <path>
@@ -164,7 +163,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version>
+                <version>3.5.2</version>
             </plugin>
         </plugins>
     </build>

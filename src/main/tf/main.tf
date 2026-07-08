@@ -95,7 +95,7 @@ resource "azurerm_windows_function_app" "this" {
     app_scale_limit          = 5
     application_insights_key = azurerm_application_insights.this.instrumentation_key
     application_stack {
-      java_version = "17"
+      java_version = "21"
     }
   }
   app_settings = {
