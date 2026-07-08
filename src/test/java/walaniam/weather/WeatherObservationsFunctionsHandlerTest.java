@@ -17,6 +17,7 @@ import walaniam.weather.function.WeatherObservationsFunctionsHandler;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
@@ -91,6 +92,54 @@ class WeatherObservationsFunctionsHandlerTest {
         assertThat(latestObservations).hasSize(10);
         assertThat(latestObservations.get(0).getOutsideTemperature()).isEqualTo(19.9f);
         assertThat(latestObservations.get(9).getOutsideTemperature()).isEqualTo(19.0f);
+    }
+
+    @Test
+    void shouldServeChartPage() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+
+        HttpResponseMessage response = underTest.getChart(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("text/html", response.getHeader("Content-Type"));
+        String html = (String) response.getBody();
+        assertThat(html).contains("Weather Dashboard");
+        assertThat(html).contains("get-chart-image-v1");
+        assertThat(html).contains("get-extremes-v1");
+        assertThat(html).contains("fromDays=3");
+    }
+
+    @Test
+    void shouldGetChartImage() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+
+        doReturn("ignored,16.5,20.5,998").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+
+        reset(requestMessage);
+        mockResponseBuilderOf(requestMessage);
+        doReturn(Map.of()).when(requestMessage).getQueryParameters();
+
+        HttpResponseMessage response = underTest.getChartImage(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("image/png", response.getHeader("Content-Type"));
+        byte[] pngBytes = (byte[]) response.getBody();
+        assertThat(pngBytes).startsWith((byte) 0x89, (byte) 'P', (byte) 'N', (byte) 'G');
+    }
+
+    @Test
+    void shouldReturnNotFoundForChartImageOfEmptyRange() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+        doReturn(Map.of("fromDate", "20000101_000000", "toDate", "20000102_000000"))
+            .when(requestMessage).getQueryParameters();
+
+        HttpResponseMessage response = underTest.getChartImage(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
     }
 
     private static void mockResponseBuilderOf(HttpRequestMessage requestMessage) {

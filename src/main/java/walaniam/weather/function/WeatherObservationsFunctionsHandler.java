@@ -6,7 +6,6 @@ import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.HttpTrigger;
 import com.mongodb.MongoException;
 import lombok.RequiredArgsConstructor;
-import walaniam.weather.common.time.DateTimeUtils;
 import walaniam.weather.mongo.DateRange;
 import walaniam.weather.mongo.WeatherDataMongoRepository;
 import walaniam.weather.persistence.WeatherData;
@@ -120,21 +119,39 @@ public class WeatherObservationsFunctionsHandler {
         HttpRequestMessage<String> request,
         ExecutionContext context) {
 
-        DateRange dateRange = DateRangeRequestParamsResolver.fromRequest(request);
+        logInfo(context, "Serving chart page");
 
-        logInfo(context, "Getting extremes of in range %s", dateRange);
+        try {
+            String htmlPage = HtmlGenerator.chartPage();
+            HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(htmlPage));
+            builder.header("Content-Type", "text/html");
+            return builder.build();
+        } catch (IOException e) {
+            return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
+        }
+    }
+
+    @FunctionName("get-chart-image-v1")
+    public HttpResponseMessage getChartImage(
+        @HttpTrigger(name = "req", methods = HttpMethod.GET, authLevel = AuthorizationLevel.ANONYMOUS)
+        HttpRequestMessage<String> request,
+        ExecutionContext context) {
+
+        DateRange dateRange = DateRangeRequestParamsResolver.fromRequest(request, 3);
+
+        logInfo(context, "Getting chart image in range %s", dateRange);
 
         WeatherDataRepository repository = repositoryProvider.apply(context);
         try {
             List<WeatherData> observations = repository.getRange(dateRange);
-            String htmlPage = HtmlGenerator.generateHtmlWithImage(observations);
-
-            HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(htmlPage));
-            builder.header("Content-Type", "text/html");
+            if (observations.isEmpty()) {
+                return responseOf(request, HttpStatus.NOT_FOUND, Optional.empty());
+            }
+            byte[] pngBytes = ChartGenerator.createChart(observations);
+            HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(pngBytes));
+            builder.header("Content-Type", "image/png");
+            builder.header("Cache-Control", "no-cache");
             return builder.build();
-
-        } catch (NoSuchElementException e) {
-            return responseOf(request, HttpStatus.NOT_FOUND, Optional.empty());
         } catch (MongoException e) {
             logWarn(context, "read failed", e);
             return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
