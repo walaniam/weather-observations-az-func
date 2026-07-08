@@ -114,6 +114,32 @@
   }
   .status.visible { display: block; }
   .chart-wrap.loading img { opacity: 0.4; }
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .nav button {
+    border: 1px solid #d1d5db;
+    background: var(--card-bg);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .nav button:hover { background: var(--accent-light); }
+  .nav .nav-range {
+    font-size: 0.85rem;
+    color: var(--muted);
+    min-width: 0;
+    text-align: center;
+  }
   .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -175,6 +201,12 @@
     <div class="status" id="chart-status">Loading&hellip;</div>
   </div>
 
+  <div class="nav">
+    <button id="nav-prev" title="Shift window one day earlier">&#9664; Previous day</button>
+    <span class="nav-range" id="nav-range"></span>
+    <button id="nav-next" title="Shift window one day later">Next day &#9654;</button>
+  </div>
+
   <div class="stats">
     <div class="stat">
       <div class="label">Min temperature</div>
@@ -214,11 +246,6 @@
 
   function pad(n) { return n < 10 ? "0" + n : "" + n; }
 
-  // yyyy-MM-dd (date input) -> yyyyMMdd_HHmmss expected by the API
-  function toApiDateTime(dateStr, endOfDay) {
-    return dateStr.replace(/-/g, "") + (endOfDay ? "_235959" : "_000000");
-  }
-
   function setActive(button) {
     presets.querySelectorAll("button").forEach(function (b) {
       b.classList.toggle("active", b === button);
@@ -246,11 +273,25 @@
     var whenEl = document.getElementById(id + "-when");
     if (view && typeof view[field] === "number") {
       valueEl.textContent = view[field].toFixed(1) + "\u00a0" + unit;
-      whenEl.textContent = view.dateTime || "";
+      whenEl.textContent = formatWhen(view.dateTime);
     } else {
       valueEl.textContent = "\u2013";
       whenEl.textContent = "";
     }
+  }
+
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  // "yyyyMMdd_HHmmss" -> "6 Jul 2026 at 02:43"
+  function formatWhen(dateTime) {
+    var m = /^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/.exec(dateTime || "");
+    if (!m) {
+      return dateTime || "";
+    }
+    var day = parseInt(m[3], 10);
+    var month = MONTHS[parseInt(m[2], 10) - 1];
+    return day + " " + month + " " + m[1] + " at " + m[4] + ":" + m[5];
   }
 
   function loadChart(query) {
@@ -294,11 +335,43 @@
     loadExtremes(query);
   }
 
+  var DAY_MS = 24 * 60 * 60 * 1000;
+  var windowFrom = null;
+  var windowTo = null;
+
+  // Date -> "yyyyMMdd_HHmmss" expected by the API (local time)
+  function toApiDate(d) {
+    return "" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
+      + "_" + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+  }
+
+  function toDisplayDate(d) {
+    return d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear();
+  }
+
+  function setWindow(from, to) {
+    windowFrom = from;
+    windowTo = to;
+    document.getElementById("nav-range").textContent =
+      toDisplayDate(from) + " \u2013 " + toDisplayDate(to);
+    refresh("fromDate=" + toApiDate(from) + "&toDate=" + toApiDate(to));
+  }
+
+  function shiftWindow(days) {
+    if (!windowFrom || !windowTo) {
+      return;
+    }
+    setWindow(new Date(windowFrom.getTime() + days * DAY_MS),
+              new Date(windowTo.getTime() + days * DAY_MS));
+  }
+
   presets.querySelectorAll("button[data-days]").forEach(function (button) {
     button.addEventListener("click", function () {
       setActive(button);
       customRange.classList.remove("visible");
-      refresh("fromDays=" + button.dataset.days);
+      var to = new Date();
+      var from = new Date(to.getTime() - button.dataset.days * DAY_MS);
+      setWindow(from, to);
     });
   });
 
@@ -318,12 +391,24 @@
       setStatus("'From' date must not be after 'To' date.");
       return;
     }
-    refresh("fromDate=" + toApiDateTime(from, false) + "&toDate=" + toApiDateTime(to, true));
+    var fromParts = from.split("-");
+    var toParts = to.split("-");
+    setWindow(
+      new Date(fromParts[0], fromParts[1] - 1, fromParts[2], 0, 0, 0),
+      new Date(toParts[0], toParts[1] - 1, toParts[2], 23, 59, 59)
+    );
+  });
+
+  document.getElementById("nav-prev").addEventListener("click", function () {
+    shiftWindow(-1);
+  });
+  document.getElementById("nav-next").addEventListener("click", function () {
+    shiftWindow(1);
   });
 
   // Sensible defaults for the custom pickers: last 3 days
   var today = new Date();
-  var threeDaysAgo = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000);
+  var threeDaysAgo = new Date(today.getTime() - 3 * DAY_MS);
   function toInputDate(d) {
     return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
   }
@@ -333,7 +418,7 @@
   // Initial load: last 3 days
   var defaultButton = presets.querySelector('button[data-days="3"]');
   setActive(defaultButton);
-  refresh("fromDays=3");
+  setWindow(new Date(today.getTime() - 3 * DAY_MS), new Date());
 })();
 </script>
 </body>

@@ -107,7 +107,8 @@ class WeatherObservationsFunctionsHandlerTest {
         assertThat(html).contains("Weather Dashboard");
         assertThat(html).contains("get-chart-image-v1");
         assertThat(html).contains("get-extremes-v1");
-        assertThat(html).contains("fromDays=3");
+        assertThat(html).contains("nav-prev");
+        assertThat(html).contains("nav-next");
     }
 
     @Test
