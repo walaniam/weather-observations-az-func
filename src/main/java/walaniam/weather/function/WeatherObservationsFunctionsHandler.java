@@ -182,6 +182,29 @@ public class WeatherObservationsFunctionsHandler {
         }
     }
 
+    @FunctionName("get-stats-v1")
+    public HttpResponseMessage getStats(
+        @HttpTrigger(name = "req", methods = HttpMethod.GET, authLevel = AuthorizationLevel.ANONYMOUS)
+        HttpRequestMessage<String> request,
+        ExecutionContext context) {
+
+        DateRange dateRange = DateRangeRequestParamsResolver.fromRequest(request);
+
+        logInfo(context, "Getting stats in range=%s", dateRange);
+
+        WeatherDataRepository repository = repositoryProvider.apply(context);
+        try {
+            List<WeatherData> observations = repository.getRange(dateRange);
+            WeatherStats stats = WeatherStatsCalculator.calculate(observations);
+            HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(stats));
+            builder.header("Content-Type", "application/json");
+            return builder.build();
+        } catch (MongoException e) {
+            logWarn(context, "read failed", e);
+            return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
+        }
+    }
+
     private static <T> HttpResponseMessage.Builder responseBuilderOf(HttpRequestMessage<String> request,
                                                       HttpStatus status,
                                                       Optional<T> message) {

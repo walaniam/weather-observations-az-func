@@ -25,7 +25,8 @@ To provision the Azure environment, follow the Terraform walkthrough in `DEMO.md
 
 - `WeatherObservationsFunctionsHandler` is the single entry point holding all `@FunctionName`
   HTTP triggers: `post-observations-v1` (auth `FUNCTION`), `get-latest-observations-v1`,
-  `get-latest-observation-v1`, `get-chart-v1`, `get-chart-image-v1`, `get-extremes-v1`
+  `get-latest-observation-v1`, `get-chart-v1`, `get-chart-image-v1`, `get-extremes-v1`,
+  `get-stats-v1`
   (all auth `ANONYMOUS`).
 - Persistence is abstracted behind `WeatherDataRepository`, implemented by
   `WeatherDataMongoRepository` (DB `weather`, collection `observations`). The repository

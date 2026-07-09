@@ -209,6 +209,33 @@
     font-size: 0.78rem;
     color: var(--muted);
   }
+  .stat .value.rising { color: #16a34a; }
+  .stat .value.falling { color: #dc2626; }
+  .daily-summary { overflow-x: auto; }
+  .daily-summary h2 {
+    font-size: 1rem;
+    font-weight: 650;
+    margin: 0 0 10px;
+  }
+  .daily-summary table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  .daily-summary th, .daily-summary td {
+    text-align: right;
+    padding: 6px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+  }
+  .daily-summary th:first-child, .daily-summary td:first-child { text-align: left; }
+  .daily-summary th {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .daily-summary tr:last-child td { border-bottom: none; }
   @media (max-width: 600px) {
     .container { padding: 10px; }
     .stat .value { font-size: 1.25rem; }
@@ -278,6 +305,52 @@
       <div class="value" id="max-pressure">&ndash;</div>
       <div class="when" id="max-pressure-when"></div>
     </div>
+    <div class="stat">
+      <div class="label">Avg outside temp</div>
+      <div class="value" id="avg-out-temp">&ndash;</div>
+      <div class="when" id="avg-out-temp-when"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Avg inside temp</div>
+      <div class="value" id="avg-in-temp">&ndash;</div>
+      <div class="when" id="avg-in-temp-when"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Avg pressure</div>
+      <div class="value" id="avg-pressure">&ndash;</div>
+      <div class="when" id="avg-pressure-when"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Inside&ndash;outside &Delta;</div>
+      <div class="value" id="in-out-delta">&ndash;</div>
+      <div class="when" id="in-out-delta-when"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Pressure tendency</div>
+      <div class="value" id="pressure-tendency">&ndash;</div>
+      <div class="when" id="pressure-tendency-when"></div>
+    </div>
+    <div class="stat">
+      <div class="label">Observations</div>
+      <div class="value" id="obs-count">&ndash;</div>
+      <div class="when" id="obs-count-when"></div>
+    </div>
+  </div>
+
+  <div class="card daily-summary" id="daily-summary" hidden>
+    <h2>Daily summary (outside temperature)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Min</th>
+          <th>Avg</th>
+          <th>Max</th>
+          <th>Amplitude</th>
+        </tr>
+      </thead>
+      <tbody id="daily-summary-body"></tbody>
+    </table>
   </div>
 </div>
 
@@ -316,6 +389,25 @@
       document.getElementById(id).textContent = "\u2013";
       document.getElementById(id + "-when").textContent = "";
     });
+  }
+
+  var STAT_TILE_IDS = ["avg-out-temp", "avg-in-temp", "avg-pressure",
+                       "in-out-delta", "pressure-tendency", "obs-count"];
+
+  function resetAggregates() {
+    STAT_TILE_IDS.forEach(function (id) {
+      document.getElementById(id).textContent = "\u2013";
+      document.getElementById(id + "-when").textContent = "";
+    });
+    var tendencyEl = document.getElementById("pressure-tendency");
+    tendencyEl.classList.remove("rising", "falling");
+    document.getElementById("daily-summary").hidden = true;
+    document.getElementById("daily-summary-body").textContent = "";
+  }
+
+  function setAggregate(id, value, unit, sub) {
+    document.getElementById(id).textContent = value + (unit ? "\u00a0" + unit : "");
+    document.getElementById(id + "-when").textContent = sub || "";
   }
 
   function setStat(id, view, field, unit) {
@@ -380,9 +472,79 @@
       });
   }
 
+  function loadStats(query) {
+    fetch("get-stats-v1?" + query)
+      .then(function (response) {
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.json();
+      })
+      .then(function (stats) {
+        resetAggregates();
+        if (!stats || !stats.count) {
+          return;
+        }
+        if (stats.outsideTemperature) {
+          setAggregate("avg-out-temp", stats.outsideTemperature.avg.toFixed(1), "\u00b0C",
+            "\u00b1" + stats.outsideTemperature.stdDev.toFixed(1) + "\u00b0C std dev");
+        }
+        if (stats.insideTemperature) {
+          setAggregate("avg-in-temp", stats.insideTemperature.avg.toFixed(1), "\u00b0C",
+            "\u00b1" + stats.insideTemperature.stdDev.toFixed(1) + "\u00b0C std dev");
+        }
+        if (stats.pressureHpa) {
+          setAggregate("avg-pressure", stats.pressureHpa.avg.toFixed(1), "hPa",
+            "\u00b1" + stats.pressureHpa.stdDev.toFixed(1) + "\u00a0hPa std dev");
+        }
+        if (typeof stats.avgInsideOutsideDelta === "number") {
+          setAggregate("in-out-delta", stats.avgInsideOutsideDelta.toFixed(1), "\u00b0C", "average difference");
+        }
+        var tendencyEl = document.getElementById("pressure-tendency");
+        if (typeof stats.pressureTendencyHpaPer3h === "number" && stats.pressureTendency) {
+          var arrow = stats.pressureTendency === "RISING" ? "\u25b2 "
+            : stats.pressureTendency === "FALLING" ? "\u25bc " : "";
+          setAggregate("pressure-tendency",
+            arrow + stats.pressureTendency.toLowerCase(), "",
+            (stats.pressureTendencyHpaPer3h >= 0 ? "+" : "")
+              + stats.pressureTendencyHpaPer3h.toFixed(1) + "\u00a0hPa / 3h");
+          tendencyEl.classList.toggle("rising", stats.pressureTendency === "RISING");
+          tendencyEl.classList.toggle("falling", stats.pressureTendency === "FALLING");
+        }
+        setAggregate("obs-count", stats.count.toLocaleString(), "", "readings in range");
+        renderDailySummary(stats.dailySummaries);
+      })
+      .catch(function () {
+        resetAggregates();
+      });
+  }
+
+  function renderDailySummary(days) {
+    var card = document.getElementById("daily-summary");
+    var body = document.getElementById("daily-summary-body");
+    body.textContent = "";
+    if (!days || days.length < 2) {
+      card.hidden = true;
+      return;
+    }
+    days.forEach(function (day) {
+      var row = document.createElement("tr");
+      [day.date,
+       day.minOutsideTemperature.toFixed(1) + "\u00a0\u00b0C",
+       day.avgOutsideTemperature.toFixed(1) + "\u00a0\u00b0C",
+       day.maxOutsideTemperature.toFixed(1) + "\u00a0\u00b0C",
+       day.amplitude.toFixed(1) + "\u00a0\u00b0C"].forEach(function (text) {
+        var cell = document.createElement("td");
+        cell.textContent = text;
+        row.appendChild(cell);
+      });
+      body.appendChild(row);
+    });
+    card.hidden = false;
+  }
+
   function refresh(query) {
     loadChart(query);
     loadExtremes(query);
+    loadStats(query);
   }
 
   var DAY_MS = 24 * 60 * 60 * 1000;
