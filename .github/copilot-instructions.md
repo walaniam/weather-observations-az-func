@@ -1,6 +1,6 @@
 # Copilot instructions for weather-observations-az-func
 
-Azure Functions app (Java 17, Maven) exposing HTTP endpoints to store and query weather
+Azure Functions app (Java 21, Maven) exposing HTTP endpoints to store and query weather
 observations backed by MongoDB / Azure Cosmos DB (Mongo API).
 
 ## Build, test, run
@@ -10,14 +10,13 @@ observations backed by MongoDB / Azure Cosmos DB (Mongo API).
 - Run all tests: `mvn test`
 - Run a single test class: `mvn test -Dtest=WeatherObservationsFunctionsHandlerTest`
 - Run a single test method: `mvn test -Dtest=WeatherObservationsFunctionsHandlerTest#shouldPostObservation`
-- CI (`.github/workflows/maven.yml`) runs `mvn -B package` on JDK 17 (temurin) for pushes/PRs to `main`.
+- CI (`.github/workflows/maven.yml`) runs `mvn -B package` on JDK 21 (temurin) for pushes/PRs to `main`.
 
 Tests use Testcontainers with a real MongoDB container, so a running Docker daemon is required.
 For manual local runs, `docker-compose.yml` starts MongoDB (`27017`) and mongo-express UI (`8081`).
 
-Keep `junit-jupiter` at `5.9.2` while `maven-surefire-plugin` stays at `2.22.2` — newer
-junit-jupiter (>= 5.10) reports "Tests run: 0" with that surefire version. Upgrade both together
-if bumping either.
+`maven-surefire-plugin` (`3.5.2`) and `junit-jupiter` (`5.11.4`) must be upgraded together —
+surefire 2.x does not discover JUnit 5 tests on JDK 21 (reports "Tests run: 0").
 
 To provision the Azure environment, follow the Terraform walkthrough in `DEMO.md` (fill in
 `src/main/tf/myenv.auto.tfvars` first, per `README.md`).
@@ -26,7 +25,8 @@ To provision the Azure environment, follow the Terraform walkthrough in `DEMO.md
 
 - `WeatherObservationsFunctionsHandler` is the single entry point holding all `@FunctionName`
   HTTP triggers: `post-observations-v1` (auth `FUNCTION`), `get-latest-observations-v1`,
-  `get-latest-observation-v1`, `get-chart-v1`, `get-extremes-v1` (all auth `ANONYMOUS`).
+  `get-latest-observation-v1`, `get-chart-v1`, `get-chart-image-v1`, `get-extremes-v1`
+  (all auth `ANONYMOUS`).
 - Persistence is abstracted behind `WeatherDataRepository`, implemented by
   `WeatherDataMongoRepository` (DB `weather`, collection `observations`). The repository
   constructor ensures required indexes exist on startup.
@@ -36,7 +36,8 @@ To provision the Azure environment, follow the Terraform walkthrough in `DEMO.md
 - MongoDB connection string comes from the `CosmosDBConnectionString` env var; when absent the
   no-arg constructor falls back to a hardcoded local Mongo URL.
 - Chart flow: `get-chart-v1` -> `getRange` -> `HtmlGenerator`/`ChartGenerator` (JFreeChart)
-  returns an HTML page with an embedded image (`Content-Type: text/html`).
+  returns an HTML page with an embedded image (`Content-Type: text/html`); `get-chart-image-v1`
+  serves the raw chart image.
 - Infrastructure lives in `src/main/tf` (Terraform, azurerm provider). See `README.md` and
   `IaC_AZ_CLI.md` for provisioning and Azure CLI operations.
 
