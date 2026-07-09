@@ -18,6 +18,7 @@
         <app.name>weather-observations-app</app.name>
         <app.plan.name>weather-observations-plan</app.plan.name>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <local.mongo.container>mongo_db</local.mongo.container>
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
         <org.projectlombok.version>1.18.46</org.projectlombok.version>
     </properties>
@@ -167,4 +168,61 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Seeds local MongoDB with sample data before running functions locally:
+             mvn clean package azure-functions:run -Pseed-local -->
+        <profile>
+            <id>seed-local</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <executions>
+                            <execution>
+                                <id>copy-seed-script</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>docker</executable>
+                                    <arguments>
+                                        <argument>cp</argument>
+                                        <argument>${project.basedir}/seed-local-data.js</argument>
+                                        <argument>${local.mongo.container}:/tmp/seed-local-data.js</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>run-seed-script</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>docker</executable>
+                                    <arguments>
+                                        <argument>exec</argument>
+                                        <argument>${local.mongo.container}</argument>
+                                        <argument>mongo</argument>
+                                        <argument>--quiet</argument>
+                                        <argument>-u</argument>
+                                        <argument>mongo</argument>
+                                        <argument>-p</argument>
+                                        <argument>mongo</argument>
+                                        <argument>--authenticationDatabase</argument>
+                                        <argument>admin</argument>
+                                        <argument>/tmp/seed-local-data.js</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
