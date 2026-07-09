@@ -105,7 +105,50 @@
     max-width: 100%;
     height: auto;
     border-radius: 8px;
+    cursor: zoom-in;
   }
+  .chart-hint {
+    display: none;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .chart-wrap img:not([hidden]) ~ .chart-hint { display: block; }
+  /* Lightbox overlay */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.85);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    cursor: zoom-out;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+    object-fit: contain;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    cursor: default;
+  }
+  #lightbox-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 4px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #lightbox-close:hover { background: rgba(255, 255, 255, 0.3); }
   .status {
     display: none;
     padding: 40px 16px;
@@ -199,7 +242,13 @@
 
   <div class="card chart-wrap" id="chart-wrap">
     <img id="chart-img" alt="Weather chart" hidden>
+    <div class="chart-hint">Tap image to view full size</div>
     <div class="status" id="chart-status">Loading&hellip;</div>
+  </div>
+
+  <div id="lightbox" role="dialog" aria-modal="true" aria-label="Full size chart">
+    <button id="lightbox-close" aria-label="Close">&times;</button>
+    <img id="lightbox-img" alt="Weather chart full size">
   </div>
 
   <div class="nav">
@@ -415,6 +464,36 @@
   }
   fromDateInput.value = toInputDate(threeDaysAgo);
   toDateInput.value = toInputDate(today);
+
+  // Lightbox
+  var lightbox = document.getElementById("lightbox");
+  var lightboxImg = document.getElementById("lightbox-img");
+
+  function openLightbox() {
+    lightboxImg.src = chartImg.src;
+    lightbox.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  chartImg.addEventListener("click", function () {
+    if (!chartImg.hidden) { openLightbox(); }
+  });
+
+  document.getElementById("lightbox-close").addEventListener("click", function (e) {
+    e.stopPropagation();
+    closeLightbox();
+  });
+
+  lightbox.addEventListener("click", closeLightbox);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { closeLightbox(); }
+  });
 
   // Initial load: last 3 days
   var defaultButton = presets.querySelector('button[data-days="3"]');
