@@ -101,6 +101,29 @@
     text-align: center;
     min-height: 200px;
   }
+  .chart-mode {
+    display: inline-flex;
+    gap: 0;
+    margin-bottom: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .chart-mode button {
+    border: none;
+    background: var(--card-bg);
+    color: var(--text);
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .chart-mode button + button { border-left: 1px solid #d1d5db; }
+  .chart-mode button:hover { background: var(--accent-light); }
+  .chart-mode button.active {
+    background: var(--accent);
+    color: #fff;
+  }
   .chart-wrap img {
     max-width: 100%;
     height: auto;
@@ -281,6 +304,10 @@
   </div>
 
   <div class="card chart-wrap" id="chart-wrap">
+    <div class="chart-mode" id="chart-mode">
+      <button data-mode="raw" class="active">Raw</button>
+      <button data-mode="smooth">Smooth</button>
+    </div>
     <img id="chart-img" alt="Weather chart" hidden>
     <div class="chart-hint">Tap image to view full size</div>
     <div class="status" id="chart-status">Loading&hellip;</div>
@@ -474,7 +501,11 @@
     return day + " " + month + " " + m[1] + " at " + m[4] + ":" + m[5];
   }
 
+  var chartMode = "raw";
+  var lastChartQuery = null;
+
   function loadChart(query) {
+    lastChartQuery = query;
     chartWrap.classList.add("loading");
     setStatus("Loading\u2026");
 
@@ -490,8 +521,25 @@
       chartWrap.classList.remove("loading");
       setStatus("No data available for the selected range.");
     };
-    img.src = "get-chart-image-v1?" + query + "&_=" + Date.now();
+    var modeParams = chartMode === "smooth" ? "&smooth=true" : "";
+    img.src = "get-chart-image-v1?" + query + modeParams + "&_=" + Date.now();
   }
+
+  var chartModeButtons = document.getElementById("chart-mode").querySelectorAll("button");
+  chartModeButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      if (button.dataset.mode === chartMode) {
+        return;
+      }
+      chartMode = button.dataset.mode;
+      chartModeButtons.forEach(function (b) {
+        b.classList.toggle("active", b === button);
+      });
+      if (lastChartQuery) {
+        loadChart(lastChartQuery);
+      }
+    });
+  });
 
   function loadExtremes(query) {
     fetch("get-extremes-v1?" + query)

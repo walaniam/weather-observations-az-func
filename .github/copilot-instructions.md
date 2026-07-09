@@ -38,7 +38,8 @@ To provision the Azure environment, follow the Terraform walkthrough in `DEMO.md
   no-arg constructor falls back to a hardcoded local Mongo URL.
 - Chart flow: `get-chart-v1` -> `getRange` -> `HtmlGenerator`/`ChartGenerator` (JFreeChart)
   returns an HTML page with an embedded image (`Content-Type: text/html`); `get-chart-image-v1`
-  serves the raw chart image.
+  serves the raw chart image and accepts optional `smooth=true` + `windowHours` (default 2)
+  query params to render a moving-average smoothed chart (the page has a Raw/Smooth toggle).
 - Infrastructure lives in `src/main/tf` (Terraform, azurerm provider). See `README.md` and
   `IaC_AZ_CLI.md` for provisioning and Azure CLI operations.
 

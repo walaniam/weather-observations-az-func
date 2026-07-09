@@ -11,6 +11,7 @@ import org.jfree.chart.axis.DateTickUnitType;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.time.MovingAverage;
 import org.jfree.data.time.Second;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
@@ -28,6 +29,13 @@ class ChartGenerator {
     private static final ZoneId ZONE_ID = ZoneId.of("Europe/Warsaw");
 
     public static byte[] createChart(List<WeatherData> weatherData) throws IOException {
+        return createChart(weatherData, 0);
+    }
+
+    /**
+     * @param smoothingWindowHours moving average window in hours; 0 or less means raw data
+     */
+    public static byte[] createChart(List<WeatherData> weatherData, int smoothingWindowHours) throws IOException {
         // Create TimeSeries for Outside Temperature and Pressure
         TimeSeries outsideTemperatureSeries = new TimeSeries("Outside Temperature (°C)");
         TimeSeries pressureSeries = new TimeSeries("Pressure (hPa)");
@@ -36,8 +44,17 @@ class ChartGenerator {
             Second timePoint = new Second(
                 java.util.Date.from(data.getDateTime().atZone(ZONE_ID).toInstant())
             );
-            outsideTemperatureSeries.add(timePoint, data.getOutsideTemperature());
-            pressureSeries.add(timePoint, data.getPressureHpa());
+            outsideTemperatureSeries.addOrUpdate(timePoint, data.getOutsideTemperature());
+            pressureSeries.addOrUpdate(timePoint, data.getPressureHpa());
+        }
+
+        if (smoothingWindowHours > 0) {
+            // periodCount is in units of the series' time period (Second)
+            int windowSeconds = smoothingWindowHours * 3600;
+            outsideTemperatureSeries = MovingAverage.createMovingAverage(
+                outsideTemperatureSeries, "Outside Temperature (°C)", windowSeconds, 0);
+            pressureSeries = MovingAverage.createMovingAverage(
+                pressureSeries, "Pressure (hPa)", windowSeconds, 0);
         }
 
         // Create a dataset for outside temperature

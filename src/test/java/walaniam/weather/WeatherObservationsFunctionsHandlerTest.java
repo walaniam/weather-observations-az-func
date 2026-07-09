@@ -134,6 +134,28 @@ class WeatherObservationsFunctionsHandlerTest {
     }
 
     @Test
+    void shouldGetSmoothedChartImage() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+
+        doReturn("ignored,16.5,20.5,998").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+        doReturn("ignored,17.5,21.0,999").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+
+        reset(requestMessage);
+        mockResponseBuilderOf(requestMessage);
+        doReturn(Map.of("smooth", "true", "windowHours", "2")).when(requestMessage).getQueryParameters();
+
+        HttpResponseMessage response = underTest.getChartImage(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("image/png", response.getHeader("Content-Type"));
+        byte[] pngBytes = (byte[]) response.getBody();
+        assertThat(pngBytes).startsWith((byte) 0x89, (byte) 'P', (byte) 'N', (byte) 'G');
+    }
+
+    @Test
     void shouldReturnNotFoundForChartImageOfEmptyRange() {
         var requestMessage = mock(HttpRequestMessage.class);
         mockResponseBuilderOf(requestMessage);

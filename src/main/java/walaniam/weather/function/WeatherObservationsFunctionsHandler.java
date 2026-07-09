@@ -13,6 +13,7 @@ import walaniam.weather.persistence.WeatherDataRepository;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Function;
@@ -138,8 +139,9 @@ public class WeatherObservationsFunctionsHandler {
         ExecutionContext context) {
 
         DateRange dateRange = DateRangeRequestParamsResolver.fromRequest(request, 3);
+        int smoothingWindowHours = smoothingWindowHours(request);
 
-        logInfo(context, "Getting chart image in range %s", dateRange);
+        logInfo(context, "Getting chart image in range %s, smoothingWindowHours=%d", dateRange, smoothingWindowHours);
 
         WeatherDataRepository repository = repositoryProvider.apply(context);
         try {
@@ -147,7 +149,7 @@ public class WeatherObservationsFunctionsHandler {
             if (observations.isEmpty()) {
                 return responseOf(request, HttpStatus.NOT_FOUND, Optional.empty());
             }
-            byte[] pngBytes = ChartGenerator.createChart(observations);
+            byte[] pngBytes = ChartGenerator.createChart(observations, smoothingWindowHours);
             HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(pngBytes));
             builder.header("Content-Type", "image/png");
             builder.header("Cache-Control", "no-cache");
@@ -202,6 +204,19 @@ public class WeatherObservationsFunctionsHandler {
         } catch (MongoException e) {
             logWarn(context, "read failed", e);
             return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
+        }
+    }
+
+    private static int smoothingWindowHours(HttpRequestMessage<String> request) {
+        Map<String, String> params = request.getQueryParameters();
+        if (!Boolean.parseBoolean(params.get("smooth"))) {
+            return 0;
+        }
+        try {
+            int windowHours = Integer.parseInt(params.getOrDefault("windowHours", "2"));
+            return Math.max(windowHours, 1);
+        } catch (NumberFormatException e) {
+            return 2;
         }
     }
 
