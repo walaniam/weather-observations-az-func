@@ -139,9 +139,9 @@ public class WeatherObservationsFunctionsHandler {
         ExecutionContext context) {
 
         DateRange dateRange = DateRangeRequestParamsResolver.fromRequest(request, 3);
-        int smoothingWindowHours = smoothingWindowHours(request);
+        String mode = chartMode(request);
 
-        logInfo(context, "Getting chart image in range %s, smoothingWindowHours=%d", dateRange, smoothingWindowHours);
+        logInfo(context, "Getting chart image in range %s, mode=%s", dateRange, mode);
 
         WeatherDataRepository repository = repositoryProvider.apply(context);
         try {
@@ -149,7 +149,11 @@ public class WeatherObservationsFunctionsHandler {
             if (observations.isEmpty()) {
                 return responseOf(request, HttpStatus.NOT_FOUND, Optional.empty());
             }
-            byte[] pngBytes = ChartGenerator.createChart(observations, smoothingWindowHours);
+            byte[] pngBytes = switch (mode) {
+                case "trend" -> ChartGenerator.createTrendChart(observations);
+                case "smooth" -> ChartGenerator.createChart(observations, smoothingWindowHours(request));
+                default -> ChartGenerator.createChart(observations);
+            };
             HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(pngBytes));
             builder.header("Content-Type", "image/png");
             builder.header("Cache-Control", "no-cache");
@@ -207,11 +211,18 @@ public class WeatherObservationsFunctionsHandler {
         }
     }
 
+    private static String chartMode(HttpRequestMessage<String> request) {
+        Map<String, String> params = request.getQueryParameters();
+        String mode = params.get("mode");
+        if ("smooth".equals(mode) || "trend".equals(mode)) {
+            return mode;
+        }
+        // Backward compatibility with the smooth=true flag
+        return Boolean.parseBoolean(params.get("smooth")) ? "smooth" : "raw";
+    }
+
     private static int smoothingWindowHours(HttpRequestMessage<String> request) {
         Map<String, String> params = request.getQueryParameters();
-        if (!Boolean.parseBoolean(params.get("smooth"))) {
-            return 0;
-        }
         try {
             int windowHours = Integer.parseInt(params.getOrDefault("windowHours", "2"));
             return Math.max(windowHours, 1);

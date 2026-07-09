@@ -307,6 +307,7 @@
     <div class="chart-mode" id="chart-mode">
       <button data-mode="raw" class="active">Raw</button>
       <button data-mode="smooth">Smooth</button>
+      <button data-mode="trend">Trend</button>
     </div>
     <img id="chart-img" alt="Weather chart" hidden>
     <div class="chart-hint">Tap image to view full size</div>
@@ -521,7 +522,7 @@
       chartWrap.classList.remove("loading");
       setStatus("No data available for the selected range.");
     };
-    var modeParams = chartMode === "smooth" ? "&smooth=true" : "";
+    var modeParams = chartMode === "raw" ? "" : "&mode=" + chartMode;
     img.src = "get-chart-image-v1?" + query + modeParams + "&_=" + Date.now();
   }
 
