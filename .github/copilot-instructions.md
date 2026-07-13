@@ -14,6 +14,9 @@ observations backed by MongoDB / Azure Cosmos DB (Mongo API).
 
 Tests use Testcontainers with a real MongoDB container, so a running Docker daemon is required.
 For manual local runs, `docker-compose.yml` starts MongoDB (`27017`) and mongo-express UI (`8081`).
+Seed local Mongo with 10 days of sample observations:
+`mvn clean package azure-functions:run -Pseed-local` (runs `seed-local-data.js` in the
+`mongo_db` container; overwrites the date range).
 
 `maven-surefire-plugin` (`3.5.2`) and `junit-jupiter` (`5.11.4`) must be upgraded together —
 surefire 2.x does not discover JUnit 5 tests on JDK 21 (reports "Tests run: 0").

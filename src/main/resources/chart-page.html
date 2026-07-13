@@ -101,6 +101,149 @@
     text-align: center;
     min-height: 200px;
   }
+  .forecast {
+    display: none;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+  }
+  .forecast.visible { display: flex; }
+  .forecast .info-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid #d1d5db;
+    background: var(--card-bg);
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 650;
+    font-style: italic;
+    font-family: Georgia, serif;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+  }
+  .forecast .info-btn:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .forecast .letter {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 1.5rem;
+    font-weight: 650;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .forecast .text {
+    font-size: 1.1rem;
+    font-weight: 650;
+    margin: 0;
+  }
+  .forecast .detail {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: 2px 0 0;
+  }
+  .forecast .detail .rising { color: #16a34a; }
+  .forecast .detail .falling { color: #dc2626; }
+  /* Forecast legend modal */
+  #legend-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #legend-modal.open { display: flex; }
+  .legend-dialog {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    max-width: 480px;
+    width: 100%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .legend-dialog header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .legend-dialog header h2 {
+    font-size: 1rem;
+    font-weight: 650;
+    margin: 0;
+  }
+  .legend-dialog header p {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: 2px 0 0;
+  }
+  #legend-close {
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #legend-close:hover { background: var(--accent-light); color: var(--accent); }
+  .legend-list {
+    overflow-y: auto;
+    padding: 8px 16px 14px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 4px;
+    border-bottom: 1px solid #f0f1f3;
+    font-size: 0.9rem;
+  }
+  .legend-item:last-child { border-bottom: none; }
+  .legend-item .legend-letter {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 650;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .legend-item.current {
+    background: var(--accent-light);
+    border-radius: 8px;
+  }
+  .legend-item.current .legend-letter {
+    background: var(--accent);
+    color: #fff;
+  }
   .chart-mode {
     display: inline-flex;
     gap: 0;
@@ -300,6 +443,28 @@
       <label>From <input type="date" id="from-date"></label>
       <label>To <input type="date" id="to-date"></label>
       <button class="apply" id="custom-apply">Apply</button>
+    </div>
+  </div>
+
+  <div class="card forecast" id="forecast">
+    <button class="info-btn" id="forecast-info" title="Forecast legend" aria-label="Show forecast legend">i</button>
+    <div class="letter" id="forecast-letter">&ndash;</div>
+    <div>
+      <p class="text" id="forecast-text"></p>
+      <p class="detail" id="forecast-detail"></p>
+    </div>
+  </div>
+
+  <div id="legend-modal" role="dialog" aria-modal="true" aria-label="Zambretti forecast legend">
+    <div class="legend-dialog">
+      <header>
+        <div>
+          <h2>Zambretti forecast codes</h2>
+          <p>All 26 possible statuses, from most settled (A) to stormiest (Z)</p>
+        </div>
+        <button id="legend-close" aria-label="Close">&times;</button>
+      </header>
+      <div class="legend-list" id="legend-list"></div>
     </div>
   </div>
 
@@ -741,7 +906,122 @@
   lightbox.addEventListener("click", closeLightbox);
 
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { closeLightbox(); }
+    if (e.key === "Escape") {
+      closeLightbox();
+      closeLegend();
+    }
+  });
+
+  // Zambretti forecaster: maps current sea-level pressure + 3h tendency
+  // to one of 26 classic Negretti & Zambra forecasts. ~12h local outlook.
+  var STATION_ALTITUDE_M = 0; // set your station altitude for sea-level adjustment
+
+  var ZAMBRETTI_FORECASTS = [
+    "Settled fine", "Fine weather", "Becoming fine", "Fine, becoming less settled",
+    "Fine, possible showers", "Fairly fine, improving", "Fairly fine, possible showers early",
+    "Fairly fine, showery later", "Showery early, improving", "Changeable, mending",
+    "Fairly fine, showers likely", "Rather unsettled, clearing later", "Unsettled, probably improving",
+    "Showery, bright intervals", "Showery, becoming less settled", "Changeable, some rain",
+    "Unsettled, short fine intervals", "Unsettled, rain later", "Unsettled, some rain",
+    "Mostly very unsettled", "Occasional rain, worsening", "Rain at times, very unsettled",
+    "Rain at frequent intervals", "Rain, very unsettled", "Stormy, may improve", "Stormy, much rain"
+  ];
+  var Z_RISING = [25, 25, 25, 24, 24, 19, 16, 12, 11, 9, 8, 6, 5, 2, 1, 1, 0, 0, 0, 0, 0, 0];
+  var Z_STEADY = [25, 25, 25, 25, 25, 25, 23, 23, 22, 18, 15, 13, 10, 4, 1, 1, 0, 0, 0, 0, 0, 0];
+  var Z_FALLING = [25, 25, 25, 25, 25, 25, 25, 25, 23, 23, 21, 20, 17, 14, 7, 3, 1, 1, 1, 0, 0, 0];
+
+  function zambretti(pressureHpa, tendency) {
+    var seaLevel = pressureHpa + STATION_ALTITUDE_M / 8.3;
+    var table = tendency === "RISING" ? Z_RISING
+      : tendency === "FALLING" ? Z_FALLING : Z_STEADY;
+    var index = Math.floor((seaLevel - 950) / (100 / table.length));
+    index = Math.max(0, Math.min(table.length - 1, index));
+    var forecastIndex = table[index];
+    return {
+      letter: String.fromCharCode(65 + forecastIndex),
+      text: ZAMBRETTI_FORECASTS[forecastIndex]
+    };
+  }
+
+  function loadForecast() {
+    var now = new Date();
+    var sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+    var tendencyQuery = "fromDate=" + toApiDate(sixHoursAgo) + "&toDate=" + toApiDate(now);
+    Promise.all([
+      fetch("get-latest-observation-v1").then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      }),
+      fetch("get-stats-v1?" + tendencyQuery).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+    ]).then(function (results) {
+      var latest = results[0];
+      var stats = results[1];
+      if (typeof latest.pressureHpa !== "number") {
+        return;
+      }
+      var tendency = (stats && stats.pressureTendency) || "STEADY";
+      var cast = zambretti(latest.pressureHpa, tendency);
+      currentForecastLetter = cast.letter;
+      document.getElementById("forecast-letter").textContent = cast.letter;
+      document.getElementById("forecast-text").textContent = cast.text;
+      var arrow = tendency === "RISING" ? "\u25b2" : tendency === "FALLING" ? "\u25bc" : "\u25ac";
+      var detail = document.getElementById("forecast-detail");
+      detail.textContent = "";
+      var trendSpan = document.createElement("span");
+      trendSpan.className = tendency.toLowerCase();
+      trendSpan.textContent = arrow + " " + tendency.toLowerCase();
+      detail.appendChild(trendSpan);
+      var rate = stats && typeof stats.pressureTendencyHpaPer3h === "number"
+        ? ", " + (stats.pressureTendencyHpaPer3h >= 0 ? "+" : "")
+          + stats.pressureTendencyHpaPer3h.toFixed(1) + "\u00a0hPa / 3h" : "";
+      detail.appendChild(document.createTextNode(
+        " \u00b7 " + latest.pressureHpa.toFixed(1) + "\u00a0hPa" + rate
+        + " \u00b7 Zambretti 12h outlook, as of " + formatWhen(latest.dateTime)));
+      document.getElementById("forecast").classList.add("visible");
+    }).catch(function () {
+      document.getElementById("forecast").classList.remove("visible");
+    });
+  }
+
+  loadForecast();
+  setInterval(loadForecast, 15 * 60 * 1000);
+
+  // Forecast legend modal
+  var currentForecastLetter = null;
+  var legendModal = document.getElementById("legend-modal");
+  var legendList = document.getElementById("legend-list");
+
+  function openLegend() {
+    legendList.textContent = "";
+    ZAMBRETTI_FORECASTS.forEach(function (text, i) {
+      var letter = String.fromCharCode(65 + i);
+      var item = document.createElement("div");
+      item.className = "legend-item" + (letter === currentForecastLetter ? " current" : "");
+      var badge = document.createElement("span");
+      badge.className = "legend-letter";
+      badge.textContent = letter;
+      item.appendChild(badge);
+      item.appendChild(document.createTextNode(text));
+      legendList.appendChild(item);
+    });
+    legendModal.classList.add("open");
+    document.body.style.overflow = "hidden";
+    var current = legendList.querySelector(".current");
+    if (current) { current.scrollIntoView({ block: "center" }); }
+  }
+
+  function closeLegend() {
+    legendModal.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  document.getElementById("forecast-info").addEventListener("click", openLegend);
+  document.getElementById("legend-close").addEventListener("click", closeLegend);
+  legendModal.addEventListener("click", function (e) {
+    if (e.target === legendModal) { closeLegend(); }
   });
 
   // Initial load: last 3 days
