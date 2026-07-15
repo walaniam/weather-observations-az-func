@@ -11,12 +11,11 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import walaniam.weather.common.time.DateTimeUtils;
+import walaniam.weather.function.SensorHealthView;
 import walaniam.weather.function.WeatherDataView;
 import walaniam.weather.function.WeatherObservationsFunctionsHandler;
 import walaniam.weather.function.WeatherStats;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -230,6 +229,27 @@ class WeatherObservationsFunctionsHandlerTest {
         assertEquals(HttpStatus.OK, response.getStatus());
         WeatherStats stats = (WeatherStats) response.getBody();
         assertThat(stats.getCount()).isZero();
+    }
+
+    @Test
+    void shouldGetSensorHealth() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+
+        doReturn("ignored,16.5,20.5,998").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+
+        reset(requestMessage);
+        mockResponseBuilderOf(requestMessage);
+        doReturn(Map.of()).when(requestMessage).getQueryParameters();
+
+        HttpResponseMessage response = underTest.getSensorHealth(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("application/json", response.getHeader("Content-Type"));
+        SensorHealthView health = (SensorHealthView) response.getBody();
+        assertThat(health.isStale()).isFalse();
+        assertThat(health.getLastSeen()).isNotNull();
     }
 
     private static void mockResponseBuilderOf(HttpRequestMessage requestMessage) {

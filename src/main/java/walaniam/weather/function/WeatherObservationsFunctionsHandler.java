@@ -12,6 +12,8 @@ import walaniam.weather.persistence.WeatherData;
 import walaniam.weather.persistence.WeatherDataRepository;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -208,6 +210,40 @@ public class WeatherObservationsFunctionsHandler {
         } catch (MongoException e) {
             logWarn(context, "read failed", e);
             return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
+        }
+    }
+
+    @FunctionName("get-sensor-health-v1")
+    public HttpResponseMessage getSensorHealth(
+        @HttpTrigger(name = "req", methods = HttpMethod.GET, authLevel = AuthorizationLevel.ANONYMOUS)
+        HttpRequestMessage<String> request,
+        ExecutionContext context) {
+
+        int staleMinutes = staleMinutes(request);
+
+        logInfo(context, "Getting sensor health, staleMinutes=%s", staleMinutes);
+
+        WeatherDataRepository repository = repositoryProvider.apply(context);
+        try {
+            List<WeatherData> latest = repository.getLatest(1);
+            SensorHealthView health = SensorHealthCalculator.calculate(
+                latest, staleMinutes, LocalDateTime.now(ZoneOffset.UTC));
+            HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(health));
+            builder.header("Content-Type", "application/json");
+            return builder.build();
+        } catch (MongoException e) {
+            logWarn(context, "read failed", e);
+            return responseOf(request, HttpStatus.INTERNAL_SERVER_ERROR, Optional.of(String.valueOf(e)));
+        }
+    }
+
+    private static int staleMinutes(HttpRequestMessage<String> request) {
+        Map<String, String> params = request.getQueryParameters();
+        try {
+            int staleMinutes = Integer.parseInt(params.getOrDefault("staleMinutes", "60"));
+            return Math.max(staleMinutes, 1);
+        } catch (NumberFormatException e) {
+            return 60;
         }
     }
 
