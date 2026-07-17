@@ -11,6 +11,10 @@ import java.util.Optional;
 public class DateRangeRequestParamsResolver {
 
     static DateRange fromRequest(HttpRequestMessage<String> request) {
+        return fromRequest(request, 7);
+    }
+
+    static DateRange fromRequest(HttpRequestMessage<String> request, int defaultFromDays) {
 
         LocalDateTime dateFrom = Optional.ofNullable(request.getQueryParameters().get("fromDate"))
             .map(DateTimeUtils::fromUtcString)
@@ -29,7 +33,7 @@ public class DateRangeRequestParamsResolver {
         } else {
             Integer fromDays = Optional.ofNullable(request.getQueryParameters().get("fromDays"))
                 .map(Integer::parseInt)
-                .orElse(7);
+                .orElse(defaultFromDays);
             Integer toDays = Optional.ofNullable(request.getQueryParameters().get("toDays"))
                 .map(Integer::parseInt)
                 .orElse(null);

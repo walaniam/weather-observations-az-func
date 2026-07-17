@@ -11,12 +11,13 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import walaniam.weather.common.time.DateTimeUtils;
+import walaniam.weather.function.SensorHealthView;
 import walaniam.weather.function.WeatherDataView;
 import walaniam.weather.function.WeatherObservationsFunctionsHandler;
+import walaniam.weather.function.WeatherStats;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
@@ -91,6 +92,164 @@ class WeatherObservationsFunctionsHandlerTest {
         assertThat(latestObservations).hasSize(10);
         assertThat(latestObservations.get(0).getOutsideTemperature()).isEqualTo(19.9f);
         assertThat(latestObservations.get(9).getOutsideTemperature()).isEqualTo(19.0f);
+    }
+
+    @Test
+    void shouldServeChartPage() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+
+        HttpResponseMessage response = underTest.getChart(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("text/html", response.getHeader("Content-Type"));
+        String html = (String) response.getBody();
+        assertThat(html).contains("Weather Dashboard");
+        assertThat(html).contains("get-chart-image-v1");
+        assertThat(html).contains("get-extremes-v1");
+        assertThat(html).contains("get-stats-v1");
+        assertThat(html).contains("nav-prev");
+        assertThat(html).contains("nav-next");
+    }
+
+    @Test
+    void shouldGetChartImage() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+
+        doReturn("ignored,16.5,20.5,998").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+
+        reset(requestMessage);
+        mockResponseBuilderOf(requestMessage);
+        doReturn(Map.of()).when(requestMessage).getQueryParameters();
+
+        HttpResponseMessage response = underTest.getChartImage(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("image/png", response.getHeader("Content-Type"));
+        byte[] pngBytes = (byte[]) response.getBody();
+        assertThat(pngBytes).startsWith((byte) 0x89, (byte) 'P', (byte) 'N', (byte) 'G');
+    }
+
+    @Test
+    void shouldGetSmoothedChartImage() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+
+        doReturn("ignored,16.5,20.5,998").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+        doReturn("ignored,17.5,21.0,999").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+
+        reset(requestMessage);
+        mockResponseBuilderOf(requestMessage);
+        doReturn(Map.of("smooth", "true", "windowHours", "2")).when(requestMessage).getQueryParameters();
+
+        HttpResponseMessage response = underTest.getChartImage(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("image/png", response.getHeader("Content-Type"));
+        byte[] pngBytes = (byte[]) response.getBody();
+        assertThat(pngBytes).startsWith((byte) 0x89, (byte) 'P', (byte) 'N', (byte) 'G');
+    }
+
+    @Test
+    void shouldGetTrendChartImage() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+
+        doReturn("ignored,16.5,20.5,998").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+        doReturn("ignored,17.5,21.0,999").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+
+        reset(requestMessage);
+        mockResponseBuilderOf(requestMessage);
+        doReturn(Map.of("mode", "trend")).when(requestMessage).getQueryParameters();
+
+        HttpResponseMessage response = underTest.getChartImage(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("image/png", response.getHeader("Content-Type"));
+        byte[] pngBytes = (byte[]) response.getBody();
+        assertThat(pngBytes).startsWith((byte) 0x89, (byte) 'P', (byte) 'N', (byte) 'G');
+    }
+
+    @Test
+    void shouldReturnNotFoundForChartImageOfEmptyRange() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+        doReturn(Map.of("fromDate", "20000101_000000", "toDate", "20000102_000000"))
+            .when(requestMessage).getQueryParameters();
+
+        HttpResponseMessage response = underTest.getChartImage(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatus());
+    }
+
+    @Test
+    void shouldGetStats() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+
+        doReturn("ignored,12.0,21.0,1002").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+        doReturn("ignored,14.0,23.0,1004").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+
+        reset(requestMessage);
+        mockResponseBuilderOf(requestMessage);
+        doReturn(Map.of()).when(requestMessage).getQueryParameters();
+
+        HttpResponseMessage response = underTest.getStats(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("application/json", response.getHeader("Content-Type"));
+        WeatherStats stats = (WeatherStats) response.getBody();
+        assertThat(stats.getCount()).isGreaterThanOrEqualTo(2);
+        assertThat(stats.getOutsideTemperature().getMin())
+            .isLessThanOrEqualTo(stats.getOutsideTemperature().getAvg());
+        assertThat(stats.getOutsideTemperature().getAvg())
+            .isLessThanOrEqualTo(stats.getOutsideTemperature().getMax());
+        assertThat(stats.getInsideTemperature()).isNotNull();
+        assertThat(stats.getPressureHpa()).isNotNull();
+        assertThat(stats.getDailySummaries()).isNotEmpty();
+    }
+
+    @Test
+    void shouldGetEmptyStatsForEmptyRange() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+        doReturn(Map.of("fromDate", "20000101_000000", "toDate", "20000102_000000"))
+            .when(requestMessage).getQueryParameters();
+
+        HttpResponseMessage response = underTest.getStats(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        WeatherStats stats = (WeatherStats) response.getBody();
+        assertThat(stats.getCount()).isZero();
+    }
+
+    @Test
+    void shouldGetSensorHealth() {
+        var requestMessage = mock(HttpRequestMessage.class);
+        mockResponseBuilderOf(requestMessage);
+
+        doReturn("ignored,16.5,20.5,998").when(requestMessage).getBody();
+        assertEquals(HttpStatus.OK, underTest.postObservation(requestMessage, executionContext).getStatus());
+
+        reset(requestMessage);
+        mockResponseBuilderOf(requestMessage);
+        doReturn(Map.of()).when(requestMessage).getQueryParameters();
+
+        HttpResponseMessage response = underTest.getSensorHealth(requestMessage, executionContext);
+
+        assertEquals(HttpStatus.OK, response.getStatus());
+        assertEquals("application/json", response.getHeader("Content-Type"));
+        SensorHealthView health = (SensorHealthView) response.getBody();
+        assertThat(health.isStale()).isFalse();
+        assertThat(health.getLastSeen()).isNotNull();
     }
 
     private static void mockResponseBuilderOf(HttpRequestMessage requestMessage) {

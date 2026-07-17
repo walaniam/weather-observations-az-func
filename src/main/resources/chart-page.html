@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Dashboard</title>
+<style>
+  :root {
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --bg: #f3f4f6;
+    --card-bg: #ffffff;
+    --radius: 12px;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  header h1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.5rem;
+    font-weight: 650;
+    margin: 8px 0 4px;
+  }
+  header p {
+    margin: 0 0 16px;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .sensor-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #9ca3af;
+    cursor: default;
+    flex: none;
+  }
+  .sensor-dot.healthy { background: #22c55e; }
+  .sensor-dot.stale { background: #f59e0b; }
+  .sensor-dot.unknown { background: #9ca3af; }
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .controls button {
+    border: 1px solid #d1d5db;
+    background: var(--card-bg);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .controls button:hover { background: var(--accent-light); }
+  .controls button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .custom-range {
+    display: none;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+  }
+  .custom-range.visible { display: flex; }
+  .custom-range label {
+    font-size: 0.85rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .custom-range input[type="date"] {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--card-bg);
+  }
+  .custom-range .apply {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .chart-wrap {
+    position: relative;
+    text-align: center;
+    min-height: 200px;
+  }
+  .forecast {
+    display: none;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+  }
+  .forecast.visible { display: flex; }
+  .forecast .info-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid #d1d5db;
+    background: var(--card-bg);
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 650;
+    font-style: italic;
+    font-family: Georgia, serif;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+  }
+  .forecast .info-btn:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .forecast .letter {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 1.5rem;
+    font-weight: 650;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .forecast .text {
+    font-size: 1.1rem;
+    font-weight: 650;
+    margin: 0;
+  }
+  .forecast .detail {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: 2px 0 0;
+  }
+  .forecast .detail .rising { color: #16a34a; }
+  .forecast .detail .falling { color: #dc2626; }
+  /* Forecast legend modal */
+  #legend-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #legend-modal.open { display: flex; }
+  .legend-dialog {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    max-width: 480px;
+    width: 100%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .legend-dialog header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .legend-dialog header h2 {
+    font-size: 1rem;
+    font-weight: 650;
+    margin: 0;
+  }
+  .legend-dialog header p {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: 2px 0 0;
+  }
+  #legend-close {
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #legend-close:hover { background: var(--accent-light); color: var(--accent); }
+  .legend-list {
+    overflow-y: auto;
+    padding: 8px 16px 14px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 4px;
+    border-bottom: 1px solid #f0f1f3;
+    font-size: 0.9rem;
+  }
+  .legend-item:last-child { border-bottom: none; }
+  .legend-item .legend-letter {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 650;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .legend-item.current {
+    background: var(--accent-light);
+    border-radius: 8px;
+  }
+  .legend-item.current .legend-letter {
+    background: var(--accent);
+    color: #fff;
+  }
+  .chart-mode {
+    display: inline-flex;
+    gap: 0;
+    margin-bottom: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .chart-mode button {
+    border: none;
+    background: var(--card-bg);
+    color: var(--text);
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .chart-mode button + button { border-left: 1px solid #d1d5db; }
+  .chart-mode button:hover { background: var(--accent-light); }
+  .chart-mode button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .chart-wrap img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    cursor: zoom-in;
+  }
+  .chart-hint {
+    display: none;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .chart-wrap img:not([hidden]) ~ .chart-hint { display: block; }
+  /* Lightbox overlay */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.85);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    cursor: zoom-out;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+    object-fit: contain;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    cursor: default;
+  }
+  #lightbox-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 4px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #lightbox-close:hover { background: rgba(255, 255, 255, 0.3); }
+  .status {
+    display: none;
+    padding: 40px 16px;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  .status.visible { display: block; }
+  .chart-wrap.loading img { opacity: 0.4; }
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .nav button {
+    border: 1px solid #d1d5db;
+    background: var(--card-bg);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .nav button:hover { background: var(--accent-light); }
+  .nav .nav-range {
+    font-size: 0.85rem;
+    color: var(--muted);
+    min-width: 0;
+    text-align: center;
+  }
+  .stat-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .stat-group-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 8px;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .stat {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px 16px;
+  }
+  .stat .label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .stat .value {
+    font-size: 1.5rem;
+    font-weight: 650;
+    margin: 2px 0;
+  }
+  .stat .when {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .stat .value.rising { color: #16a34a; }
+  .stat .value.falling { color: #dc2626; }
+  .daily-summary { overflow-x: auto; margin-top: 2rem; }
+  .daily-summary h2 {
+    font-size: 1rem;
+    font-weight: 650;
+    margin: 0 0 10px;
+  }
+  .daily-summary table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  .daily-summary th, .daily-summary td {
+    text-align: right;
+    padding: 6px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+  }
+  .daily-summary th:first-child, .daily-summary td:first-child { text-align: left; }
+  .daily-summary th {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .daily-summary tr:last-child td { border-bottom: none; }
+  @media (max-width: 600px) {
+    .container { padding: 10px; }
+    .stat .value { font-size: 1.25rem; }
+    header h1 { font-size: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Weather Dashboard<span class="sensor-dot unknown" id="sensor-dot" title="Sensor status unavailable"></span></h1>
+    <p>Local weather station observations</p>
+  </header>
+
+  <div class="card">
+    <div class="controls" id="presets">
+      <button data-days="1">1 day</button>
+      <button data-days="3">3 days</button>
+      <button data-days="5">5 days</button>
+      <button data-days="7">7 days</button>
+      <button data-days="14">14 days</button>
+      <button data-days="30">30 days</button>
+      <button id="custom-toggle">Custom</button>
+    </div>
+    <div class="custom-range" id="custom-range">
+      <label>From <input type="date" id="from-date"></label>
+      <label>To <input type="date" id="to-date"></label>
+      <button class="apply" id="custom-apply">Apply</button>
+    </div>
+  </div>
+
+  <div class="card forecast" id="forecast">
+    <button class="info-btn" id="forecast-info" title="Forecast legend" aria-label="Show forecast legend">i</button>
+    <div class="letter" id="forecast-letter">&ndash;</div>
+    <div>
+      <p class="text" id="forecast-text"></p>
+      <p class="detail" id="forecast-detail"></p>
+    </div>
+  </div>
+
+  <div id="legend-modal" role="dialog" aria-modal="true" aria-label="Zambretti forecast legend">
+    <div class="legend-dialog">
+      <header>
+        <div>
+          <h2>Zambretti forecast codes</h2>
+          <p>All 26 possible statuses, from most settled (A) to stormiest (Z)</p>
+        </div>
+        <button id="legend-close" aria-label="Close">&times;</button>
+      </header>
+      <div class="legend-list" id="legend-list"></div>
+    </div>
+  </div>
+
+  <div class="card chart-wrap" id="chart-wrap">
+    <div class="chart-mode" id="chart-mode">
+      <button data-mode="raw" class="active">Raw</button>
+      <button data-mode="smooth">Smooth</button>
+      <button data-mode="trend">Trend</button>
+    </div>
+    <img id="chart-img" alt="Weather chart" hidden>
+    <div class="chart-hint">Tap image to view full size</div>
+    <div class="status" id="chart-status">Loading&hellip;</div>
+  </div>
+
+  <div id="lightbox" role="dialog" aria-modal="true" aria-label="Full size chart">
+    <button id="lightbox-close" aria-label="Close">&times;</button>
+    <img id="lightbox-img" alt="Weather chart full size">
+  </div>
+
+  <div class="nav">
+    <button id="nav-prev" title="Shift window one day earlier">&#9664; Previous day</button>
+    <span class="nav-range" id="nav-range"></span>
+    <button id="nav-next" title="Shift window one day later">Next day &#9654;</button>
+  </div>
+
+  <div class="stat-groups">
+
+    <div>
+      <h3 class="stat-group-title">Outside temperatures</h3>
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Min temperature</div>
+          <div class="value" id="min-temp">&ndash;</div>
+          <div class="when" id="min-temp-when"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Max temperature</div>
+          <div class="value" id="max-temp">&ndash;</div>
+          <div class="when" id="max-temp-when"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Avg outside temp</div>
+          <div class="value" id="avg-out-temp">&ndash;</div>
+          <div class="when" id="avg-out-temp-when"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="stat-group-title">Inside temperatures</h3>
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Avg inside temp</div>
+          <div class="value" id="avg-in-temp">&ndash;</div>
+          <div class="when" id="avg-in-temp-when"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="stat-group-title">Pressure</h3>
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Min pressure</div>
+          <div class="value" id="min-pressure">&ndash;</div>
+          <div class="when" id="min-pressure-when"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Max pressure</div>
+          <div class="value" id="max-pressure">&ndash;</div>
+          <div class="when" id="max-pressure-when"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Avg pressure</div>
+          <div class="value" id="avg-pressure">&ndash;</div>
+          <div class="when" id="avg-pressure-when"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Pressure tendency</div>
+          <div class="value" id="pressure-tendency">&ndash;</div>
+          <div class="when" id="pressure-tendency-when"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="stat-group-title">Other</h3>
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Inside&ndash;outside &Delta;</div>
+          <div class="value" id="in-out-delta">&ndash;</div>
+          <div class="when" id="in-out-delta-when"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Observations</div>
+          <div class="value" id="obs-count">&ndash;</div>
+          <div class="when" id="obs-count-when"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card daily-summary" id="daily-summary" hidden>
+    <h2>Daily summary (outside temperature)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Min</th>
+          <th>Avg</th>
+          <th>Max</th>
+          <th>Amplitude</th>
+        </tr>
+      </thead>
+      <tbody id="daily-summary-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var LOCAL_TZ = (function () {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    } catch (e) {
+      return "UTC";
+    }
+  })();
+
+  var chartImg = document.getElementById("chart-img");
+  var chartWrap = document.getElementById("chart-wrap");
+  var chartStatus = document.getElementById("chart-status");
+  var presets = document.getElementById("presets");
+  var customToggle = document.getElementById("custom-toggle");
+  var customRange = document.getElementById("custom-range");
+  var fromDateInput = document.getElementById("from-date");
+  var toDateInput = document.getElementById("to-date");
+
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+
+  function setActive(button) {
+    presets.querySelectorAll("button").forEach(function (b) {
+      b.classList.toggle("active", b === button);
+    });
+  }
+
+  function setStatus(text) {
+    if (text) {
+      chartStatus.textContent = text;
+      chartStatus.classList.add("visible");
+    } else {
+      chartStatus.classList.remove("visible");
+    }
+  }
+
+  function resetStats() {
+    ["min-temp", "max-temp", "min-pressure", "max-pressure"].forEach(function (id) {
+      document.getElementById(id).textContent = "\u2013";
+      document.getElementById(id + "-when").textContent = "";
+    });
+  }
+
+  var STAT_TILE_IDS = ["avg-out-temp", "avg-in-temp", "avg-pressure",
+                       "in-out-delta", "pressure-tendency", "obs-count"];
+
+  function resetAggregates() {
+    STAT_TILE_IDS.forEach(function (id) {
+      document.getElementById(id).textContent = "\u2013";
+      document.getElementById(id + "-when").textContent = "";
+    });
+    var tendencyEl = document.getElementById("pressure-tendency");
+    tendencyEl.classList.remove("rising", "falling");
+    document.getElementById("daily-summary").hidden = true;
+    document.getElementById("daily-summary-body").textContent = "";
+  }
+
+  function setAggregate(id, value, unit, sub) {
+    document.getElementById(id).textContent = value + (unit ? "\u00a0" + unit : "");
+    document.getElementById(id + "-when").textContent = sub || "";
+  }
+
+  function setStat(id, view, field, unit) {
+    var valueEl = document.getElementById(id);
+    var whenEl = document.getElementById(id + "-when");
+    if (view && typeof view[field] === "number") {
+      valueEl.textContent = view[field].toFixed(1) + "\u00a0" + unit;
+      whenEl.textContent = formatWhen(view.dateTime);
+    } else {
+      valueEl.textContent = "\u2013";
+      whenEl.textContent = "";
+    }
+  }
+
+  // "yyyyMMdd_HHmmss" (UTC) -> "6 Jul 2026 at 04:43" in the browser's local timezone
+  function formatWhen(dateTime) {
+    var m = /^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})?/.exec(dateTime || "");
+    if (!m) {
+      return dateTime || "";
+    }
+    var utcMillis = Date.UTC(
+      parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10),
+      parseInt(m[4], 10), parseInt(m[5], 10), m[6] ? parseInt(m[6], 10) : 0
+    );
+    var local = new Date(utcMillis);
+    var parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: LOCAL_TZ, day: "numeric", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit", hour12: false
+    }).formatToParts(local);
+    var byType = {};
+    parts.forEach(function (part) { byType[part.type] = part.value; });
+    return byType.day + " " + byType.month + " " + byType.year
+      + " at " + byType.hour + ":" + byType.minute;
+  }
+
+  var chartMode = "raw";
+  var lastChartQuery = null;
+
+  function loadChart(query) {
+    lastChartQuery = query;
+    chartWrap.classList.add("loading");
+    setStatus("Loading\u2026");
+
+    var img = new Image();
+    img.onload = function () {
+      chartImg.src = img.src;
+      chartImg.hidden = false;
+      chartWrap.classList.remove("loading");
+      setStatus(null);
+    };
+    img.onerror = function () {
+      chartImg.hidden = true;
+      chartWrap.classList.remove("loading");
+      setStatus("No data available for the selected range.");
+    };
+    var modeParams = chartMode === "raw" ? "" : "&mode=" + chartMode;
+    img.src = "get-chart-image-v1?" + query + modeParams + "&_=" + Date.now();
+  }
+
+  var chartModeButtons = document.getElementById("chart-mode").querySelectorAll("button");
+  chartModeButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      if (button.dataset.mode === chartMode) {
+        return;
+      }
+      chartMode = button.dataset.mode;
+      chartModeButtons.forEach(function (b) {
+        b.classList.toggle("active", b === button);
+      });
+      if (lastChartQuery) {
+        loadChart(lastChartQuery);
+      }
+    });
+  });
+
+  function loadExtremes(query) {
+    fetch("get-extremes-v1?" + query)
+      .then(function (response) {
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.json();
+      })
+      .then(function (extremes) {
+        setStat("min-temp", extremes.minOutsideTemperature, "outsideTemperature", "\u00b0C");
+        setStat("max-temp", extremes.maxOutsideTemperature, "outsideTemperature", "\u00b0C");
+        setStat("min-pressure", extremes.minPressure, "pressureHpa", "hPa");
+        setStat("max-pressure", extremes.maxPressure, "pressureHpa", "hPa");
+      })
+      .catch(function () {
+        resetStats();
+      });
+  }
+
+  function loadStats(query) {
+    fetch("get-stats-v1?" + query)
+      .then(function (response) {
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.json();
+      })
+      .then(function (stats) {
+        resetAggregates();
+        if (!stats || !stats.count) {
+          return;
+        }
+        if (stats.outsideTemperature) {
+          setAggregate("avg-out-temp", stats.outsideTemperature.avg.toFixed(1), "\u00b0C",
+            "\u00b1" + stats.outsideTemperature.stdDev.toFixed(1) + "\u00b0C std dev");
+        }
+        if (stats.insideTemperature) {
+          setAggregate("avg-in-temp", stats.insideTemperature.avg.toFixed(1), "\u00b0C",
+            "\u00b1" + stats.insideTemperature.stdDev.toFixed(1) + "\u00b0C std dev");
+        }
+        if (stats.pressureHpa) {
+          setAggregate("avg-pressure", stats.pressureHpa.avg.toFixed(1), "hPa",
+            "\u00b1" + stats.pressureHpa.stdDev.toFixed(1) + "\u00a0hPa std dev");
+        }
+        if (typeof stats.avgInsideOutsideDelta === "number") {
+          setAggregate("in-out-delta", stats.avgInsideOutsideDelta.toFixed(1), "\u00b0C", "average difference");
+        }
+        var tendencyEl = document.getElementById("pressure-tendency");
+        if (typeof stats.pressureTendencyHpaPer3h === "number" && stats.pressureTendency) {
+          var arrow = stats.pressureTendency === "RISING" ? "\u25b2 "
+            : stats.pressureTendency === "FALLING" ? "\u25bc " : "";
+          setAggregate("pressure-tendency",
+            arrow + stats.pressureTendency.toLowerCase(), "",
+            (stats.pressureTendencyHpaPer3h >= 0 ? "+" : "")
+              + stats.pressureTendencyHpaPer3h.toFixed(1) + "\u00a0hPa / 3h");
+          tendencyEl.classList.toggle("rising", stats.pressureTendency === "RISING");
+          tendencyEl.classList.toggle("falling", stats.pressureTendency === "FALLING");
+        }
+        setAggregate("obs-count", stats.count.toLocaleString(), "", "readings in range");
+        renderDailySummary(stats.dailySummaries);
+      })
+      .catch(function () {
+        resetAggregates();
+      });
+  }
+
+  function renderDailySummary(days) {
+    var card = document.getElementById("daily-summary");
+    var body = document.getElementById("daily-summary-body");
+    body.textContent = "";
+    if (!days || days.length < 2) {
+      card.hidden = true;
+      return;
+    }
+    days.forEach(function (day) {
+      var row = document.createElement("tr");
+      [formatDayDate(day.date),
+       day.minOutsideTemperature.toFixed(1) + "\u00a0\u00b0C",
+       day.avgOutsideTemperature.toFixed(1) + "\u00a0\u00b0C",
+       day.maxOutsideTemperature.toFixed(1) + "\u00a0\u00b0C",
+       day.amplitude.toFixed(1) + "\u00a0\u00b0C"].forEach(function (text) {
+        var cell = document.createElement("td");
+        cell.textContent = text;
+        row.appendChild(cell);
+      });
+      body.appendChild(row);
+    });
+    card.hidden = false;
+  }
+
+  // "yyyy-MM-dd" (already the local calendar day, per the requested tz) -> "6 Jul"
+  function formatDayDate(date) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date || "");
+    if (!m) {
+      return date || "";
+    }
+    var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return parseInt(m[3], 10) + " " + MONTHS[parseInt(m[2], 10) - 1];
+  }
+
+  function refresh(query) {
+    var q = query + "&tz=" + encodeURIComponent(LOCAL_TZ);
+    loadChart(q);
+    loadExtremes(q);
+    loadStats(q);
+  }
+
+  var DAY_MS = 24 * 60 * 60 * 1000;
+  var windowFrom = null;
+  var windowTo = null;
+
+  // Date -> "yyyyMMdd_HHmmss" expected by the API (UTC)
+  function toApiDate(d) {
+    return "" + d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate())
+      + "_" + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds());
+  }
+
+  function toDisplayDate(d) {
+    var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear();
+  }
+
+  function setWindow(from, to) {
+    windowFrom = from;
+    windowTo = to;
+    document.getElementById("nav-range").textContent =
+      toDisplayDate(from) + " \u2013 " + toDisplayDate(to);
+    refresh("fromDate=" + toApiDate(from) + "&toDate=" + toApiDate(to));
+  }
+
+  function shiftWindow(days) {
+    if (!windowFrom || !windowTo) {
+      return;
+    }
+    setWindow(new Date(windowFrom.getTime() + days * DAY_MS),
+              new Date(windowTo.getTime() + days * DAY_MS));
+  }
+
+  presets.querySelectorAll("button[data-days]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      setActive(button);
+      customRange.classList.remove("visible");
+      var to = new Date();
+      var from = new Date(to.getTime() - button.dataset.days * DAY_MS);
+      setWindow(from, to);
+    });
+  });
+
+  customToggle.addEventListener("click", function () {
+    setActive(customToggle);
+    customRange.classList.toggle("visible");
+  });
+
+  document.getElementById("custom-apply").addEventListener("click", function () {
+    var from = fromDateInput.value;
+    var to = toDateInput.value;
+    if (!from || !to) {
+      setStatus("Please select both dates.");
+      return;
+    }
+    if (from > to) {
+      setStatus("'From' date must not be after 'To' date.");
+      return;
+    }
+    var fromParts = from.split("-");
+    var toParts = to.split("-");
+    setWindow(
+      new Date(fromParts[0], fromParts[1] - 1, fromParts[2], 0, 0, 0),
+      new Date(toParts[0], toParts[1] - 1, toParts[2], 23, 59, 59)
+    );
+  });
+
+  document.getElementById("nav-prev").addEventListener("click", function () {
+    shiftWindow(-1);
+  });
+  document.getElementById("nav-next").addEventListener("click", function () {
+    shiftWindow(1);
+  });
+
+  // Sensible defaults for the custom pickers: last 3 days
+  var today = new Date();
+  var threeDaysAgo = new Date(today.getTime() - 3 * DAY_MS);
+  function toInputDate(d) {
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+  fromDateInput.value = toInputDate(threeDaysAgo);
+  toDateInput.value = toInputDate(today);
+
+  // Lightbox
+  var lightbox = document.getElementById("lightbox");
+  var lightboxImg = document.getElementById("lightbox-img");
+
+  function openLightbox() {
+    lightboxImg.src = chartImg.src;
+    lightbox.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  chartImg.addEventListener("click", function () {
+    if (!chartImg.hidden) { openLightbox(); }
+  });
+
+  document.getElementById("lightbox-close").addEventListener("click", function (e) {
+    e.stopPropagation();
+    closeLightbox();
+  });
+
+  lightbox.addEventListener("click", closeLightbox);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      closeLightbox();
+      closeLegend();
+    }
+  });
+
+  // Zambretti forecaster: maps current sea-level pressure + 3h tendency
+  // to one of 26 classic Negretti & Zambra forecasts. ~12h local outlook.
+  var STATION_ALTITUDE_M = 0; // set your station altitude for sea-level adjustment
+
+  var ZAMBRETTI_FORECASTS = [
+    "Settled fine", "Fine weather", "Becoming fine", "Fine, becoming less settled",
+    "Fine, possible showers", "Fairly fine, improving", "Fairly fine, possible showers early",
+    "Fairly fine, showery later", "Showery early, improving", "Changeable, mending",
+    "Fairly fine, showers likely", "Rather unsettled, clearing later", "Unsettled, probably improving",
+    "Showery, bright intervals", "Showery, becoming less settled", "Changeable, some rain",
+    "Unsettled, short fine intervals", "Unsettled, rain later", "Unsettled, some rain",
+    "Mostly very unsettled", "Occasional rain, worsening", "Rain at times, very unsettled",
+    "Rain at frequent intervals", "Rain, very unsettled", "Stormy, may improve", "Stormy, much rain"
+  ];
+  var Z_RISING = [25, 25, 25, 24, 24, 19, 16, 12, 11, 9, 8, 6, 5, 2, 1, 1, 0, 0, 0, 0, 0, 0];
+  var Z_STEADY = [25, 25, 25, 25, 25, 25, 23, 23, 22, 18, 15, 13, 10, 4, 1, 1, 0, 0, 0, 0, 0, 0];
+  var Z_FALLING = [25, 25, 25, 25, 25, 25, 25, 25, 23, 23, 21, 20, 17, 14, 7, 3, 1, 1, 1, 0, 0, 0];
+
+  function zambretti(pressureHpa, tendency) {
+    var seaLevel = pressureHpa + STATION_ALTITUDE_M / 8.3;
+    var table = tendency === "RISING" ? Z_RISING
+      : tendency === "FALLING" ? Z_FALLING : Z_STEADY;
+    var index = Math.floor((seaLevel - 950) / (100 / table.length));
+    index = Math.max(0, Math.min(table.length - 1, index));
+    var forecastIndex = table[index];
+    return {
+      letter: String.fromCharCode(65 + forecastIndex),
+      text: ZAMBRETTI_FORECASTS[forecastIndex]
+    };
+  }
+
+  function loadForecast() {
+    var now = new Date();
+    var sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+    var tendencyQuery = "fromDate=" + toApiDate(sixHoursAgo) + "&toDate=" + toApiDate(now)
+      + "&tz=" + encodeURIComponent(LOCAL_TZ);
+    Promise.all([
+      fetch("get-latest-observation-v1").then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      }),
+      fetch("get-stats-v1?" + tendencyQuery).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+    ]).then(function (results) {
+      var latest = results[0];
+      var stats = results[1];
+      if (typeof latest.pressureHpa !== "number") {
+        return;
+      }
+      var tendency = (stats && stats.pressureTendency) || "STEADY";
+      var cast = zambretti(latest.pressureHpa, tendency);
+      currentForecastLetter = cast.letter;
+      document.getElementById("forecast-letter").textContent = cast.letter;
+      document.getElementById("forecast-text").textContent = cast.text;
+      var arrow = tendency === "RISING" ? "\u25b2" : tendency === "FALLING" ? "\u25bc" : "\u25ac";
+      var detail = document.getElementById("forecast-detail");
+      detail.textContent = "";
+      var trendSpan = document.createElement("span");
+      trendSpan.className = tendency.toLowerCase();
+      trendSpan.textContent = arrow + " " + tendency.toLowerCase();
+      detail.appendChild(trendSpan);
+      var rate = stats && typeof stats.pressureTendencyHpaPer3h === "number"
+        ? ", " + (stats.pressureTendencyHpaPer3h >= 0 ? "+" : "")
+          + stats.pressureTendencyHpaPer3h.toFixed(1) + "\u00a0hPa / 3h" : "";
+      detail.appendChild(document.createTextNode(
+        " \u00b7 " + latest.pressureHpa.toFixed(1) + "\u00a0hPa" + rate
+        + " \u00b7 Zambretti 12h outlook, as of " + formatWhen(latest.dateTime)));
+      document.getElementById("forecast").classList.add("visible");
+    }).catch(function () {
+      document.getElementById("forecast").classList.remove("visible");
+    });
+  }
+
+  loadForecast();
+  setInterval(loadForecast, 15 * 60 * 1000);
+
+  function loadSensorHealth() {
+    var dot = document.getElementById("sensor-dot");
+    fetch("get-sensor-health-v1").then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (health) {
+      if (!health.lastSeen) {
+        dot.className = "sensor-dot stale";
+        dot.title = "No data available";
+        return;
+      }
+      var when = formatWhen(health.lastSeen);
+      if (health.stale) {
+        dot.className = "sensor-dot stale";
+        dot.title = "Data stale \u00b7 Last observation: " + when;
+      } else {
+        dot.className = "sensor-dot healthy";
+        dot.title = "Data up to date \u00b7 Last observation: " + when;
+      }
+    }).catch(function () {
+      dot.className = "sensor-dot unknown";
+      dot.title = "Sensor status unavailable";
+    });
+  }
+
+  loadSensorHealth();
+  setInterval(loadSensorHealth, 15 * 60 * 1000);
+
+  // Forecast legend modal
+  var currentForecastLetter = null;
+  var legendModal = document.getElementById("legend-modal");
+  var legendList = document.getElementById("legend-list");
+
+  function openLegend() {
+    legendList.textContent = "";
+    ZAMBRETTI_FORECASTS.forEach(function (text, i) {
+      var letter = String.fromCharCode(65 + i);
+      var item = document.createElement("div");
+      item.className = "legend-item" + (letter === currentForecastLetter ? " current" : "");
+      var badge = document.createElement("span");
+      badge.className = "legend-letter";
+      badge.textContent = letter;
+      item.appendChild(badge);
+      item.appendChild(document.createTextNode(text));
+      legendList.appendChild(item);
+    });
+    legendModal.classList.add("open");
+    document.body.style.overflow = "hidden";
+    var current = legendList.querySelector(".current");
+    if (current) { current.scrollIntoView({ block: "center" }); }
+  }
+
+  function closeLegend() {
+    legendModal.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  document.getElementById("forecast-info").addEventListener("click", openLegend);
+  document.getElementById("legend-close").addEventListener("click", closeLegend);
+  legendModal.addEventListener("click", function (e) {
+    if (e.target === legendModal) { closeLegend(); }
+  });
+
+  // Initial load: last 3 days
+  var defaultButton = presets.querySelector('button[data-days="3"]');
+  setActive(defaultButton);
+  setWindow(new Date(today.getTime() - 3 * DAY_MS), new Date());
+})();
+</script>
+</body>
+</html>
