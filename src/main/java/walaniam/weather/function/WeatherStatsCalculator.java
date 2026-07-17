@@ -7,6 +7,8 @@ import walaniam.weather.persistence.WeatherData;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.function.ToDoubleFunction;
@@ -19,8 +21,10 @@ class WeatherStatsCalculator {
 
     /**
      * @param observations observations sorted ascending by dateTime
+     * @param zone         timezone used to group observations into local calendar days for
+     *                     {@code dailySummaries} (observation timestamps are stored as UTC)
      */
-    public static WeatherStats calculate(List<WeatherData> observations) {
+    public static WeatherStats calculate(List<WeatherData> observations, ZoneId zone) {
 
         if (observations.isEmpty()) {
             return WeatherStats.builder()
@@ -48,7 +52,7 @@ class WeatherStatsCalculator {
             .avgInsideOutsideDelta(avgDelta)
             .pressureTendencyHpaPer3h(tendency)
             .pressureTendency(tendencyLabel(tendency))
-            .dailySummaries(dailySummariesOf(observations))
+            .dailySummaries(dailySummariesOf(observations, zone))
             .build();
     }
 
@@ -106,10 +110,12 @@ class WeatherStatsCalculator {
         return "STEADY";
     }
 
-    private static List<WeatherStats.DailySummary> dailySummariesOf(List<WeatherData> observations) {
+    private static List<WeatherStats.DailySummary> dailySummariesOf(List<WeatherData> observations, ZoneId zone) {
         TreeMap<LocalDate, List<WeatherData>> byDay = new TreeMap<>();
         observations.forEach(observation ->
-            byDay.computeIfAbsent(observation.getDateTime().toLocalDate(), day -> new java.util.ArrayList<>())
+            byDay.computeIfAbsent(
+                observation.getDateTime().atZone(ZoneOffset.UTC).withZoneSameInstant(zone).toLocalDate(),
+                day -> new java.util.ArrayList<>())
                 .add(observation));
         return byDay.entrySet().stream()
             .map(entry -> {

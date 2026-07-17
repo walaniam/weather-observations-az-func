@@ -603,6 +603,14 @@
 (function () {
   "use strict";
 
+  var LOCAL_TZ = (function () {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    } catch (e) {
+      return "UTC";
+    }
+  })();
+
   var chartImg = document.getElementById("chart-img");
   var chartWrap = document.getElementById("chart-wrap");
   var chartStatus = document.getElementById("chart-status");
@@ -667,18 +675,25 @@
     }
   }
 
-  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-  // "yyyyMMdd_HHmmss" -> "6 Jul 2026 at 02:43"
+  // "yyyyMMdd_HHmmss" (UTC) -> "6 Jul 2026 at 04:43" in the browser's local timezone
   function formatWhen(dateTime) {
-    var m = /^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/.exec(dateTime || "");
+    var m = /^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})?/.exec(dateTime || "");
     if (!m) {
       return dateTime || "";
     }
-    var day = parseInt(m[3], 10);
-    var month = MONTHS[parseInt(m[2], 10) - 1];
-    return day + " " + month + " " + m[1] + " at " + m[4] + ":" + m[5];
+    var utcMillis = Date.UTC(
+      parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10),
+      parseInt(m[4], 10), parseInt(m[5], 10), m[6] ? parseInt(m[6], 10) : 0
+    );
+    var local = new Date(utcMillis);
+    var parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: LOCAL_TZ, day: "numeric", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit", hour12: false
+    }).formatToParts(local);
+    var byType = {};
+    parts.forEach(function (part) { byType[part.type] = part.value; });
+    return byType.day + " " + byType.month + " " + byType.year
+      + " at " + byType.hour + ":" + byType.minute;
   }
 
   var chartMode = "raw";
@@ -793,7 +808,7 @@
     }
     days.forEach(function (day) {
       var row = document.createElement("tr");
-      [day.date,
+      [formatDayDate(day.date),
        day.minOutsideTemperature.toFixed(1) + "\u00a0\u00b0C",
        day.avgOutsideTemperature.toFixed(1) + "\u00a0\u00b0C",
        day.maxOutsideTemperature.toFixed(1) + "\u00a0\u00b0C",
@@ -807,23 +822,37 @@
     card.hidden = false;
   }
 
+  // "yyyy-MM-dd" (already the local calendar day, per the requested tz) -> "6 Jul"
+  function formatDayDate(date) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date || "");
+    if (!m) {
+      return date || "";
+    }
+    var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return parseInt(m[3], 10) + " " + MONTHS[parseInt(m[2], 10) - 1];
+  }
+
   function refresh(query) {
-    loadChart(query);
-    loadExtremes(query);
-    loadStats(query);
+    var q = query + "&tz=" + encodeURIComponent(LOCAL_TZ);
+    loadChart(q);
+    loadExtremes(q);
+    loadStats(q);
   }
 
   var DAY_MS = 24 * 60 * 60 * 1000;
   var windowFrom = null;
   var windowTo = null;
 
-  // Date -> "yyyyMMdd_HHmmss" expected by the API (local time)
+  // Date -> "yyyyMMdd_HHmmss" expected by the API (UTC)
   function toApiDate(d) {
-    return "" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
-      + "_" + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+    return "" + d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate())
+      + "_" + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds());
   }
 
   function toDisplayDate(d) {
+    var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     return d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear();
   }
 
@@ -960,7 +989,8 @@
   function loadForecast() {
     var now = new Date();
     var sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-    var tendencyQuery = "fromDate=" + toApiDate(sixHoursAgo) + "&toDate=" + toApiDate(now);
+    var tendencyQuery = "fromDate=" + toApiDate(sixHoursAgo) + "&toDate=" + toApiDate(now)
+      + "&tz=" + encodeURIComponent(LOCAL_TZ);
     Promise.all([
       fetch("get-latest-observation-v1").then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);

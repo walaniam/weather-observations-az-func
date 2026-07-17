@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -36,23 +37,27 @@ import java.util.stream.Collectors;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 class ChartGenerator {
 
-    private static final ZoneId ZONE_ID = ZoneId.of("Europe/Warsaw");
-
-    public static byte[] createChart(List<WeatherData> weatherData) throws IOException {
-        return createChart(weatherData, 0);
+    public static byte[] createChart(List<WeatherData> weatherData, ZoneId zone) throws IOException {
+        return createChart(weatherData, 0, zone);
     }
 
     /**
      * @param smoothingWindowHours moving average window in hours; 0 or less means raw data
+     * @param zone                 timezone used both to place data points on the axis and to
+     *                             format axis tick labels (observation timestamps are stored as UTC)
      */
-    public static byte[] createChart(List<WeatherData> weatherData, int smoothingWindowHours) throws IOException {
+    public static byte[] createChart(List<WeatherData> weatherData, int smoothingWindowHours, ZoneId zone) throws IOException {
+        return chartToPngBytes(buildChart(weatherData, smoothingWindowHours, zone), 1200, 675);
+    }
+
+    static JFreeChart buildChart(List<WeatherData> weatherData, int smoothingWindowHours, ZoneId zone) {
         // Create TimeSeries for Outside Temperature and Pressure
         TimeSeries outsideTemperatureSeries = new TimeSeries("Outside Temperature (°C)");
         TimeSeries pressureSeries = new TimeSeries("Pressure (hPa)");
 
         for (WeatherData data : weatherData) {
             Second timePoint = new Second(
-                java.util.Date.from(data.getDateTime().atZone(ZONE_ID).toInstant())
+                java.util.Date.from(data.getDateTime().atZone(ZoneOffset.UTC).toInstant())
             );
             outsideTemperatureSeries.addOrUpdate(timePoint, data.getOutsideTemperature());
             pressureSeries.addOrUpdate(timePoint, data.getPressureHpa());
@@ -90,6 +95,7 @@ class ChartGenerator {
 
         // Set up the X-axis as a DateAxis with custom tick units
         DateAxis dateAxis = (DateAxis) plot.getDomainAxis();
+        dateAxis.setTimeZone(java.util.TimeZone.getTimeZone(zone));
         dateAxis.setTickUnit(
             new DateTickUnit(DateTickUnitType.HOUR, 6),
             true,
@@ -114,17 +120,21 @@ class ChartGenerator {
         pressureRenderer.setSeriesPaint(0, Color.BLUE);  // Pressure color
         plot.setRenderer(1, pressureRenderer);
 
-        return chartToPngBytes(chart, 1200, 675);
+        return chart;
     }
 
     /**
      * Daily trend chart: average outside temperature line with a min-max deviation band
      * and average pressure line, one data point per day.
      */
-    public static byte[] createTrendChart(List<WeatherData> weatherData) throws IOException {
+    public static byte[] createTrendChart(List<WeatherData> weatherData, ZoneId zone) throws IOException {
+        return chartToPngBytes(buildTrendChart(weatherData, zone), 1200, 675);
+    }
+
+    static JFreeChart buildTrendChart(List<WeatherData> weatherData, ZoneId zone) {
         Map<LocalDate, List<WeatherData>> byDay = weatherData.stream()
             .collect(Collectors.groupingBy(
-                data -> data.getDateTime().toLocalDate(),
+                data -> data.getDateTime().atZone(ZoneOffset.UTC).withZoneSameInstant(zone).toLocalDate(),
                 TreeMap::new,
                 Collectors.toList()
             ));
@@ -139,7 +149,7 @@ class ChartGenerator {
             double avgPressure = observations.stream().mapToDouble(WeatherData::getPressureHpa).average().orElseThrow();
 
             long middayMillis = java.util.Date.from(
-                LocalDateTime.of(day, java.time.LocalTime.NOON).atZone(ZONE_ID).toInstant()
+                LocalDateTime.of(day, java.time.LocalTime.NOON).atZone(zone).toInstant()
             ).getTime();
             temperatureSeries.add(middayMillis, avgTemp, minTemp, maxTemp);
             pressureSeries.addOrUpdate(new Day(day.getDayOfMonth(), day.getMonthValue(), day.getYear()), avgPressure);
@@ -167,6 +177,7 @@ class ChartGenerator {
         plot.setRenderer(temperatureRenderer);
 
         DateAxis dateAxis = (DateAxis) plot.getDomainAxis();
+        dateAxis.setTimeZone(java.util.TimeZone.getTimeZone(zone));
         dateAxis.setTickUnit(
             new DateTickUnit(DateTickUnitType.DAY, 1),
             true,
@@ -190,7 +201,7 @@ class ChartGenerator {
         pressureRenderer.setSeriesStroke(0, new BasicStroke(2.0f));
         plot.setRenderer(1, pressureRenderer);
 
-        return chartToPngBytes(chart, 1200, 675);
+        return chart;
     }
 
     private static byte[] chartToPngBytes(JFreeChart chart, int width, int height) throws IOException {

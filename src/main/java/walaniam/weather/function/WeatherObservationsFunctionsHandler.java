@@ -142,6 +142,7 @@ public class WeatherObservationsFunctionsHandler {
 
         DateRange dateRange = DateRangeRequestParamsResolver.fromRequest(request, 3);
         String mode = chartMode(request);
+        var zone = ZoneIdRequestParamResolver.fromRequest(request);
 
         logInfo(context, "Getting chart image in range %s, mode=%s", dateRange, mode);
 
@@ -152,9 +153,9 @@ public class WeatherObservationsFunctionsHandler {
                 return responseOf(request, HttpStatus.NOT_FOUND, Optional.empty());
             }
             byte[] pngBytes = switch (mode) {
-                case "trend" -> ChartGenerator.createTrendChart(observations);
-                case "smooth" -> ChartGenerator.createChart(observations, smoothingWindowHours(request));
-                default -> ChartGenerator.createChart(observations);
+                case "trend" -> ChartGenerator.createTrendChart(observations, zone);
+                case "smooth" -> ChartGenerator.createChart(observations, smoothingWindowHours(request), zone);
+                default -> ChartGenerator.createChart(observations, zone);
             };
             HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(pngBytes));
             builder.header("Content-Type", "image/png");
@@ -197,13 +198,14 @@ public class WeatherObservationsFunctionsHandler {
         ExecutionContext context) {
 
         DateRange dateRange = DateRangeRequestParamsResolver.fromRequest(request);
+        var zone = ZoneIdRequestParamResolver.fromRequest(request);
 
         logInfo(context, "Getting stats in range=%s", dateRange);
 
         WeatherDataRepository repository = repositoryProvider.apply(context);
         try {
             List<WeatherData> observations = repository.getRange(dateRange);
-            WeatherStats stats = WeatherStatsCalculator.calculate(observations);
+            WeatherStats stats = WeatherStatsCalculator.calculate(observations, zone);
             HttpResponseMessage.Builder builder = responseBuilderOf(request, HttpStatus.OK, Optional.of(stats));
             builder.header("Content-Type", "application/json");
             return builder.build();

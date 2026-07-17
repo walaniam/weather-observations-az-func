@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import walaniam.weather.persistence.WeatherData;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,7 +17,7 @@ class WeatherStatsCalculatorTest {
 
     @Test
     void shouldReturnZeroCountForEmptyObservations() {
-        WeatherStats stats = WeatherStatsCalculator.calculate(List.of());
+        WeatherStats stats = WeatherStatsCalculator.calculate(List.of(), ZoneOffset.UTC);
 
         assertThat(stats.getCount()).isZero();
         assertThat(stats.getOutsideTemperature()).isNull();
@@ -30,7 +32,7 @@ class WeatherStatsCalculatorTest {
             observation(BASE.plusHours(2), 30, 24, 1020)
         );
 
-        WeatherStats stats = WeatherStatsCalculator.calculate(observations);
+        WeatherStats stats = WeatherStatsCalculator.calculate(observations, ZoneOffset.UTC);
 
         assertThat(stats.getCount()).isEqualTo(3);
         assertThat(stats.getOutsideTemperature().getMin()).isEqualTo(10f);
@@ -50,7 +52,7 @@ class WeatherStatsCalculatorTest {
             observation(BASE.plusHours(4), 10, 20, 1005)
         );
 
-        WeatherStats stats = WeatherStatsCalculator.calculate(observations);
+        WeatherStats stats = WeatherStatsCalculator.calculate(observations, ZoneOffset.UTC);
 
         assertThat(stats.getPressureTendencyHpaPer3h()).isEqualTo(5f);
         assertThat(stats.getPressureTendency()).isEqualTo("RISING");
@@ -63,7 +65,7 @@ class WeatherStatsCalculatorTest {
             observation(BASE.plusHours(4), 10, 20, 1005)
         );
 
-        WeatherStats stats = WeatherStatsCalculator.calculate(observations);
+        WeatherStats stats = WeatherStatsCalculator.calculate(observations, ZoneOffset.UTC);
 
         assertThat(stats.getPressureTendencyHpaPer3h()).isEqualTo(-5f);
         assertThat(stats.getPressureTendency()).isEqualTo("FALLING");
@@ -76,7 +78,7 @@ class WeatherStatsCalculatorTest {
             observation(BASE.plusHours(1), 10, 20, 1010)
         );
 
-        WeatherStats stats = WeatherStatsCalculator.calculate(observations);
+        WeatherStats stats = WeatherStatsCalculator.calculate(observations, ZoneOffset.UTC);
 
         assertThat(stats.getPressureTendencyHpaPer3h()).isNull();
         assertThat(stats.getPressureTendency()).isNull();
@@ -91,7 +93,7 @@ class WeatherStatsCalculatorTest {
             observation(BASE.plusDays(1).plusHours(12), 15, 20, 1000)
         );
 
-        WeatherStats stats = WeatherStatsCalculator.calculate(observations);
+        WeatherStats stats = WeatherStatsCalculator.calculate(observations, ZoneOffset.UTC);
 
         assertThat(stats.getDailySummaries()).hasSize(2);
         WeatherStats.DailySummary day1 = stats.getDailySummaries().get(0);
@@ -103,6 +105,25 @@ class WeatherStatsCalculatorTest {
         WeatherStats.DailySummary day2 = stats.getDailySummaries().get(1);
         assertThat(day2.getDate()).isEqualTo("2026-07-02");
         assertThat(day2.getAmplitude()).isEqualTo(10f);
+    }
+
+    @Test
+    void shouldGroupDailySummariesByLocalDayWhenZoneProvided() {
+        // 23:30 UTC on 30 Jun and 00:30 UTC on 1 Jul are the same calendar day (1 Jul)
+        // in Europe/Warsaw (UTC+2 in summer), but two different UTC calendar days.
+        ZoneId warsaw = ZoneId.of("Europe/Warsaw");
+        List<WeatherData> observations = List.of(
+            observation(LocalDateTime.of(2026, 6, 30, 23, 30), 10, 20, 1000),
+            observation(LocalDateTime.of(2026, 7, 1, 0, 30), 12, 20, 1000)
+        );
+
+        WeatherStats stats = WeatherStatsCalculator.calculate(observations, warsaw);
+
+        assertThat(stats.getDailySummaries()).hasSize(1);
+        WeatherStats.DailySummary day = stats.getDailySummaries().get(0);
+        assertThat(day.getDate()).isEqualTo("2026-07-01");
+        assertThat(day.getMinOutsideTemperature()).isEqualTo(10f);
+        assertThat(day.getMaxOutsideTemperature()).isEqualTo(12f);
     }
 
     private static WeatherData observation(LocalDateTime dateTime, float outside, float inside, float pressure) {
